@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Misiones HN</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     FIREBASE CONFIG — pegá tu configuración aquí abajo
+     (obtenela en console.firebase.google.com → tu proyecto →
+      Configuración del proyecto → Tus apps → SDK de Firebase)
+     ═══════════════════════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, collection, getDoc, setDoc, deleteDoc, getDocs, onSnapshot, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const FIREBASE_CONFIG = {
+  apiKey:            "REEMPLAZA_API_KEY",
+  authDomain:        "REEMPLAZA_PROJECT_ID.firebaseapp.com",
+  projectId:         "REEMPLAZA_PROJECT_ID",
+  storageBucket:     "REEMPLAZA_PROJECT_ID.appspot.com",
+  messagingSenderId: "REEMPLAZA_SENDER_ID",
+  appId:             "REEMPLAZA_APP_ID"
+};
+
+// ─────────────────────────────────────────────────────────────
+let app, db;
+try {
+  app = initializeApp(FIREBASE_CONFIG);
+  db  = getFirestore(app);
+  window._db  = db;
+  window._fns = { doc, collection, getDoc, setDoc, deleteDoc, getDocs, onSnapshot, query, where, writeBatch };
+  window._dbReady = true;
+} catch(e) {
+  console.warn("Firebase no inicializado:", e.message);
+  window._dbReady = false;
+}
+window.dispatchEvent(new Event("db-ready"));
+</script>
+
+<style>
+:root{
+  --red:#DC2626;--navy:#0F1B2D;--amber:#F59E0B;
+  --green:#10B981;--purple:#7C3AED;--blue:#2563EB;--orange:#EA580C;
+  --bg:#F0F4F8;--surf:#FFFFFF;--surf2:#F8FAFC;
+  --bdr:#CBD5E1;--tx:#0F1B2D;--tx2:#475569;--tx3:#94A3B8;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#070D17;--surf:#0F1B2D;--surf2:#1A2A3F;
+  --bdr:#1E3352;--tx:#E8F0FE;--tx2:#94AFCF;--tx3:#4A6FA5;
+}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--tx);min-height:100dvh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+img{max-width:100%;display:block}
+.bb{font-family:'Bebas Neue',Impact,sans-serif}
+.hidden{display:none!important}
+.screen{display:none;min-height:100dvh;flex-direction:column}
+.screen.active{display:flex}
+
+/* ── LOGIN ─────────────────────────────── */
+#sl{background:var(--navy);position:relative;overflow:hidden}
+#sl::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(220,38,38,.35) 0%,transparent 70%),radial-gradient(ellipse 50% 40% at 100% 100%,rgba(37,99,235,.18) 0%,transparent 60%);pointer-events:none}
+.lh{padding:44px 26px 22px;position:relative;z-index:1}
+.lb{display:flex;align-items:center;gap:10px;margin-bottom:26px}
+.ld{width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 14px var(--red)}
+.ln{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.42)}
+.lt{font-family:'Bebas Neue',sans-serif;font-size:clamp(50px,13vw,78px);line-height:.92;color:#fff;letter-spacing:.01em}
+.lt span{color:var(--red)}
+.ls{margin-top:11px;font-size:13px;color:rgba(255,255,255,.38);font-weight:500}
+.ll{padding:0 26px 12px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.26);position:relative;z-index:1}
+.lg{display:grid;grid-template-columns:repeat(auto-fill,minmax(136px,1fr));gap:8px;padding:0 26px 18px;position:relative;z-index:1;flex:1;align-content:start}
+.vc{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:15px 13px;cursor:pointer;transition:background .15s,transform .12s;text-align:left}
+.vc::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--red);transform:scaleX(0);transition:transform .2s;transform-origin:left}
+.vc{position:relative;overflow:hidden}
+.vc:hover{background:rgba(255,255,255,.1);transform:translateY(-2px)}
+.vc:hover::after{transform:scaleX(1)}
+.vc:active{transform:scale(.98)}
+.vn{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;color:#fff;margin-bottom:4px}
+.vl{font-size:9px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,.32);margin-bottom:8px}
+.vb{height:3px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden}
+.vbf{height:100%;border-radius:2px;background:var(--green);transition:width .4s}
+.vst{margin-top:6px;font-size:10px;color:rgba(255,255,255,.3);font-weight:500}
+.vst strong{color:rgba(255,255,255,.62)}
+.lbtns{display:flex;gap:8px;padding:0 26px 28px;position:relative;z-index:1}
+.lbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 14px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s}
+.lbtn-dash{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:rgba(255,255,255,.38)}
+.lbtn-dash:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.65)}
+.lbtn-pts{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.2);color:rgba(245,158,11,.8)}
+.lbtn-pts:hover{background:rgba(245,158,11,.2);color:var(--amber)}
+
+/* ── DB STATUS ─────────────────────────── */
+.db-status{position:fixed;top:10px;right:12px;z-index:200;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;display:flex;align-items:center;gap:5px;backdrop-filter:blur(8px)}
+.db-ok{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:var(--green)}
+.db-off{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#EF4444}
+.db-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.db-ok .db-dot{animation:dbp 1.8s infinite}
+@keyframes dbp{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── VENDOR HEADER ─────────────────────── */
+#sv{background:var(--bg);padding-bottom:76px}
+.vh{background:var(--navy);color:#fff;padding:13px 17px 17px;position:sticky;top:0;z-index:50}
+.vht{display:flex;align-items:center;gap:10px;margin-bottom:13px}
+.vhbk{width:33px;height:33px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;flex-shrink:0;color:#fff;font-size:15px}
+.vhbk:hover{background:rgba(255,255,255,.18)}
+.vhav{width:41px;height:41px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:19px;color:#fff;flex-shrink:0}
+.vhnb{flex:1;min-width:0}
+.vhname{font-family:'Bebas Neue',sans-serif;font-size:19px;line-height:1.1;color:#fff}
+.vhter{font-size:11px;color:rgba(255,255,255,.4);font-weight:500;margin-top:1px}
+.vhsb{text-align:right;flex-shrink:0}
+.vhpts{font-family:'Bebas Neue',sans-serif;font-size:25px;line-height:1;color:var(--amber)}
+.vhplbl{font-size:9px;letter-spacing:.1em;color:rgba(255,255,255,.3);text-transform:uppercase;font-weight:600}
+.vhprog{display:flex;align-items:center;gap:8px}
+.vhpbar{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
+.vhpfill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--green),#34D399);transition:width .6s cubic-bezier(.34,1.56,.64,1)}
+.vhptxt{font-size:11px;font-weight:700;color:var(--green);min-width:36px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* ── DAY FILTER ────────────────────────── */
+.df{padding:10px 13px 6px;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none}
+.df::-webkit-scrollbar{display:none}
+.dp{padding:6px 13px;border-radius:22px;font-size:12px;font-weight:700;background:var(--surf);border:1.5px solid var(--bdr);color:var(--tx2);cursor:pointer;white-space:nowrap;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:1px}
+.dp-day{font-size:12px;font-weight:700}
+.dp-ct{font-size:10px;font-weight:500;opacity:.6}
+.dp.on{background:var(--red);border-color:var(--red);color:#fff}
+.dp.on .dp-ct{opacity:.75}
+.dp:hover:not(.on){border-color:var(--red);color:var(--red)}
+
+/* ── DAY SUMMARY ───────────────────────── */
+.day-sum{margin:6px 13px 8px;background:var(--surf);border:1.5px solid var(--bdr);border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:13px}
+.day-sum.ok{border-color:var(--green);background:rgba(16,185,129,.05)}
+.ds-icon{font-size:22px;flex-shrink:0}
+.ds-body{flex:1;min-width:0}
+.ds-title{font-size:13px;font-weight:700;color:var(--tx)}
+.ds-sub{font-size:11px;color:var(--tx2);margin-top:2px}
+.ds-pct{font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;flex-shrink:0;font-variant-numeric:tabular-nums}
+.slbl{padding:0 13px 5px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);display:flex;justify-content:space-between;align-items:center}
+.pdvl{padding:0 13px}
+
+/* ── PDV CARD ──────────────────────────── */
+.pc{background:var(--surf);border:1.5px solid var(--bdr);border-radius:16px;margin-bottom:10px;overflow:hidden;transition:border-color .2s,box-shadow .2s}
+.pc.pend{border-color:transparent;box-shadow:0 0 0 1.5px var(--red),0 3px 12px rgba(220,38,38,.08)}
+.pc.done{border-color:transparent;box-shadow:0 0 0 1.5px var(--green),0 3px 12px rgba(16,185,129,.08)}
+.pchd{padding:13px 14px 11px;display:flex;align-items:flex-start;gap:11px}
+.pccb{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:17px;color:#fff;flex-shrink:0;margin-top:1px}
+.c1{background:var(--red)}.c2{background:var(--blue)}.c3{background:var(--orange)}.c4{background:var(--tx3)}
+.pcin{flex:1;min-width:0}
+.pcn{font-size:14px;font-weight:700;color:var(--tx);line-height:1.3}
+.pcm{font-size:11px;color:var(--tx2);margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.pcm-tag{display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:20px;background:var(--surf2);border:1px solid var(--bdr);font-size:10px;color:var(--tx3);font-weight:600}
+.pcbadge{display:flex;align-items:center;gap:4px;margin-top:7px;flex-wrap:wrap}
+.mbd{font-size:9px;font-weight:800;letter-spacing:.03em;padding:3px 8px;border-radius:20px;color:#fff;text-transform:uppercase}
+.mbd.dn-b{opacity:.3;text-decoration:line-through}
+.pc-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.pc-done-ico{font-size:22px}
+.pc-counter{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--tx2);text-align:center;font-variant-numeric:tabular-nums}
+.pc-counter-lbl{font-size:9px;color:var(--tx3);font-weight:600;letter-spacing:.05em;text-align:center}
+
+/* ── MISSION ROWS ──────────────────────── */
+.pcms{border-top:1px solid var(--bdr)}
+.mr{padding:14px;border-bottom:1px solid var(--bdr);position:relative;transition:background .15s}
+.mr:last-child{border-bottom:none}
+.mr.dn-row{background:rgba(16,185,129,.03)}
+.mr-top{display:flex;align-items:flex-start;gap:12px}
+.mck{width:48px;height:48px;border-radius:50%;border:2.5px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .18s;font-size:22px;color:transparent;background:var(--surf2);-webkit-tap-highlight-color:transparent}
+.mck.on{border-color:var(--green);background:var(--green);color:#fff;box-shadow:0 3px 12px rgba(16,185,129,.35)}
+.mck:active{transform:scale(.9)}
+.mr-body{flex:1;min-width:0;padding-top:2px}
+.mr-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}
+.mr-name{font-size:14px;font-weight:700;color:var(--tx);display:flex;align-items:center;gap:6px;line-height:1.3}
+.mr-pts{font-family:'Bebas Neue',sans-serif;font-size:18px;border-radius:9px;padding:2px 10px;color:#fff;flex-shrink:0}
+.mr-desc{font-size:12px;color:var(--tx2);line-height:1.6;margin-bottom:8px}
+.mr.dn-row .mr-desc{opacity:.45}
+.mr-foto-hint{display:flex;align-items:flex-start;gap:6px;font-size:11px;color:var(--tx3);font-weight:600;margin-bottom:10px;padding:7px 10px;border-radius:9px;background:var(--surf2);border:1px solid var(--bdr);line-height:1.5}
+.mr-foto-hint span{flex:1}
+.mr.dn-row .mr-foto-hint{opacity:.45}
+.mr-done-badge{display:none;font-size:10px;font-weight:700;color:var(--green);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;align-items:center;gap:5px}
+.mr.dn-row .mr-done-badge{display:flex}
+
+/* ── PHOTO CAPTURE ─────────────────────── */
+.photo-zone{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.phi{display:none}
+.pbtn-capture{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border-radius:12px;font-size:14px;font-weight:700;border:2px dashed var(--bdr);color:var(--tx2);cursor:pointer;transition:all .18s;background:var(--surf2);-webkit-tap-highlight-color:transparent}
+.pbtn-capture:hover,.pbtn-capture:active{border-color:var(--blue);color:var(--blue);background:rgba(37,99,235,.05)}
+.pbtn-capture .cam-icon{font-size:22px}
+.photo-row{display:flex;align-items:center;gap:10px;width:100%}
+.pthumb{width:72px;height:72px;border-radius:11px;object-fit:cover;border:2.5px solid var(--green);cursor:pointer;flex-shrink:0}
+.pbtn-change{display:flex;align-items:center;gap:5px;padding:8px 13px;border-radius:9px;font-size:12px;font-weight:700;border:1.5px solid var(--bdr);color:var(--tx2);cursor:pointer;transition:all .15s;background:var(--surf)}
+.pbtn-change:hover{border-color:var(--green);color:var(--green)}
+.photo-loading{display:flex;align-items:center;gap:8px;padding:11px 14px;border-radius:11px;background:rgba(37,99,235,.08);border:1.5px solid rgba(37,99,235,.2);font-size:12px;font-weight:700;color:var(--blue);width:100%}
+.spin{width:16px;height:16px;border:2px solid rgba(37,99,235,.3);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── CONGRATS ──────────────────────────── */
+.cov{display:none;position:fixed;inset:0;z-index:200;background:rgba(8,18,35,.97);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px}
+.cov.show{display:flex}
+.ce{font-size:66px;margin-bottom:13px;animation:bnc .6s ease infinite alternate}
+@keyframes bnc{from{transform:translateY(0)}to{transform:translateY(-12px)}}
+.ct{font-family:'Bebas Neue',sans-serif;font-size:48px;color:#fff;line-height:1;margin-bottom:7px}
+.ct span{color:var(--amber)}
+.cs{font-size:14px;color:rgba(255,255,255,.52);margin-bottom:26px;line-height:1.6}
+.cc{padding:13px 28px;background:var(--red);color:#fff;border-radius:11px;font-weight:700;font-size:15px;cursor:pointer}
+.empty{text-align:center;padding:42px 18px;color:var(--tx3);font-size:14px}
+.empty .big{font-size:36px;margin-bottom:10px}
+
+/* ── BOTTOM NAV ────────────────────────── */
+.bnav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surf);border-top:1px solid var(--bdr);display:flex;padding-bottom:env(safe-area-inset-bottom,0)}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 4px 7px;cursor:pointer;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx3);transition:color .15s;gap:2px}
+.nb .ni{font-size:19px}
+.nb.on{color:var(--red)}
+
+/* ── RANKING ───────────────────────────── */
+#sr{background:var(--bg);padding-bottom:76px}
+.rh{background:var(--navy);padding:13px 17px 21px}
+.rh-top{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.rh-bk{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:15px;flex-shrink:0}
+.rh-bk:hover{background:rgba(255,255,255,.2)}
+.rht{font-family:'Bebas Neue',sans-serif;font-size:32px;color:#fff}
+.rhs{font-size:12px;color:rgba(255,255,255,.36);margin-top:2px}
+.rpod{padding:16px 13px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;align-items:end}
+.pi{display:flex;flex-direction:column;align-items:center;gap:3px}
+.pav{width:41px;height:41px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:#fff;margin-bottom:3px}
+.p1 .pav{background:var(--amber);width:49px;height:49px;font-size:22px;box-shadow:0 4px 18px rgba(245,158,11,.38)}
+.p2 .pav{background:#94A3B8}.p3 .pav{background:#B45309}
+.pnm{font-size:10px;font-weight:700;color:var(--tx);text-align:center}
+.ppt{font-family:'Bebas Neue',sans-serif;font-size:17px}
+.p1 .ppt{color:var(--amber);font-size:21px}
+.pblk{border-radius:7px 7px 0 0;width:100%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:26px;color:rgba(255,255,255,.7)}
+.p1 .pblk{background:var(--amber);height:66px;font-size:30px}
+.p2 .pblk{background:#94A3B8;height:49px}
+.p3 .pblk{background:#B45309;height:37px}
+.rlist{padding:0 13px 13px;display:flex;flex-direction:column;gap:7px}
+.rr{background:var(--surf);border:1.5px solid var(--bdr);border-radius:13px;padding:12px 13px;display:flex;align-items:center;gap:10px}
+.rr.me{border-color:var(--red);box-shadow:0 2px 12px rgba(220,38,38,.1)}
+.rpos{font-family:'Bebas Neue',sans-serif;font-size:21px;color:var(--tx3);width:24px;text-align:center;flex-shrink:0}
+.rr.me .rpos{color:var(--red)}
+.rav{width:35px;height:35px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:#fff;flex-shrink:0}
+.ri{flex:1;min-width:0}
+.rname{font-size:13px;font-weight:700;color:var(--tx)}
+.rdet{font-size:11px;color:var(--tx2);margin-top:1px}
+.rbt{height:4px;border-radius:2px;background:var(--bg);margin-top:5px;overflow:hidden}
+.rbf{height:100%;border-radius:2px;transition:width .6s}
+.rpts{font-family:'Bebas Neue',sans-serif;font-size:23px;color:var(--amber);flex-shrink:0;font-variant-numeric:tabular-nums}
+
+/* ── PUNTAJES ──────────────────────────── */
+#spt{background:var(--bg);padding-bottom:76px}
+.ph{background:var(--navy);padding:17px 17px 22px;position:relative;overflow:hidden}
+.ph::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 100% 50%,rgba(245,158,11,.15) 0%,transparent 60%);pointer-events:none}
+.ph-top{display:flex;align-items:center;gap:10px;margin-bottom:18px;position:relative;z-index:1}
+.ph-bk{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:14px}
+.ph-title{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff}
+.ph-sub{font-size:11px;color:rgba(255,255,255,.36);margin-top:1px}
+.ph-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;position:relative;z-index:1}
+.phs-tile{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 10px;text-align:center}
+.phs-val{font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1;margin-bottom:2px}
+.phs-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.38)}
+.pt-section{padding:12px 13px 0;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3)}
+.pt-list{padding:8px 13px 14px;display:flex;flex-direction:column;gap:8px}
+.ptc{background:var(--surf);border:1.5px solid var(--bdr);border-radius:14px;padding:15px 14px;position:relative;overflow:hidden}
+.ptc-accent{position:absolute;left:0;top:0;bottom:0;width:3px}
+.ptc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:8px}
+.ptc-nm{display:flex;align-items:center;gap:7px}
+.ptc-icon{font-size:20px}
+.ptc-name{font-size:14px;font-weight:700;color:var(--tx)}
+.ptc-pts-badge{padding:3px 10px;border-radius:20px;font-family:'Bebas Neue',sans-serif;font-size:18px;color:#fff;flex-shrink:0}
+.ptc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:10px}
+.ptc-stat{text-align:center;padding:7px 4px;border-radius:9px}
+.ptc-stat-v{font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
+.ptc-stat-l{font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tx3);margin-top:2px}
+.ptc-stat.obj{background:var(--surf2)}.ptc-stat.dn{background:rgba(16,185,129,.08)}.ptc-stat.pend{background:rgba(239,68,68,.06)}
+.ptc-bar-row{display:flex;align-items:center;gap:8px}
+.ptc-bar-track{flex:1;height:8px;border-radius:4px;background:var(--bg);overflow:hidden}
+.ptc-bar-fill{height:100%;border-radius:4px;transition:width .8s}
+.ptc-pct{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--tx2);min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* ── DASHBOARD ─────────────────────────── */
+#sd{background:var(--bg);padding-bottom:76px}
+.dh{background:var(--navy);padding:17px 17px 21px}
+.dh-top{display:flex;align-items:center;gap:10px;margin-bottom:3px}
+.dh-bk{background:rgba(255,255,255,.1);border:none;border-radius:50%;width:30px;height:30px;color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.dh-t{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff}
+.dh-sub{font-size:12px;color:rgba(255,255,255,.36);margin-top:1px;padding-left:40px}
+.dlock{padding:42px 22px;text-align:center}
+.dlk-i{font-size:44px;margin-bottom:13px}
+.dlk-t{font-size:17px;font-weight:700;color:var(--tx);margin-bottom:7px}
+.dlk-s{font-size:13px;color:var(--tx2);margin-bottom:22px}
+.prow{display:flex;gap:8px;justify-content:center;margin-bottom:13px}
+.pdot{width:13px;height:13px;border-radius:50%;border:2px solid var(--bdr);transition:all .15s}
+.pdot.on{background:var(--red);border-color:var(--red)}
+.pkp{display:grid;grid-template-columns:repeat(3,56px);gap:9px;justify-content:center}
+.pk{width:56px;height:56px;border-radius:50%;background:var(--surf);border:1.5px solid var(--bdr);font-size:20px;font-weight:700;color:var(--tx);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.pk:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.pk.del{font-size:15px;color:var(--tx2)}
+.perr{font-size:12px;color:var(--red);margin-top:10px;font-weight:600}
+.dtabs{display:flex;border-bottom:1px solid var(--bdr);background:var(--surf);padding:0 13px;overflow-x:auto;scrollbar-width:none}
+.dtabs::-webkit-scrollbar{display:none}
+.dtab{padding:11px 12px;font-size:12px;font-weight:700;color:var(--tx3);cursor:pointer;border-bottom:2.5px solid transparent;transition:all .15s;white-space:nowrap}
+.dtab.on{color:var(--red);border-bottom-color:var(--red)}
+.dpnl{display:none}.dpnl.on{display:block}
+.kg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:13px}
+.kt{background:var(--surf);border:1.5px solid var(--bdr);border-radius:13px;padding:13px}
+.kl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);margin-bottom:3px}
+.kv{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;font-variant-numeric:tabular-nums}
+.ks{font-size:11px;color:var(--tx2);margin-top:2px}
+.stitle{padding:6px 13px 9px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2)}
+.mbars{padding:0 13px 13px;display:flex;flex-direction:column;gap:9px}
+.mb-r{display:flex;flex-direction:column;gap:4px}
+.mb-top{display:flex;justify-content:space-between;align-items:center}
+.mb-nm{font-size:12px;font-weight:700;color:var(--tx);display:flex;align-items:center;gap:5px}
+.mb-ct{font-size:11px;color:var(--tx2);font-variant-numeric:tabular-nums}
+.mb-tr{height:7px;border-radius:4px;background:var(--bg);overflow:hidden}
+.mb-f{height:100%;border-radius:4px;transition:width .7s ease}
+.dvlist{padding:0 13px 13px;display:flex;flex-direction:column;gap:7px}
+.dvr{background:var(--surf);border:1.5px solid var(--bdr);border-radius:13px;padding:13px}
+.dv-tp{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.dv-av{width:33px;height:33px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:#fff;flex-shrink:0}
+.dv-nm{font-size:13px;font-weight:700;color:var(--tx);flex:1}
+.dv-pts{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--amber)}
+.dv-bt{height:5px;border-radius:3px;background:var(--bg);overflow:hidden;margin-bottom:5px}
+.dv-bf{height:100%;border-radius:3px;transition:width .6s}
+.dv-sr{display:flex;gap:14px}
+.dv-st{font-size:10px;color:var(--tx2)}
+.dv-st strong{color:var(--green);font-weight:700}
+.exp-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px 18px;border-radius:11px;background:rgba(16,185,129,.08);border:1.5px solid rgba(16,185,129,.25);color:var(--green);font-size:14px;font-weight:700;cursor:pointer;transition:all .18s}
+.exp-btn:hover{background:rgba(16,185,129,.15);border-color:var(--green)}
+.exp-btn:disabled{opacity:.6;pointer-events:none}
+.exp-wrap{padding:0 13px 13px}
+.pgal{padding:0 13px 13px;display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.gi{position:relative;aspect-ratio:1;border-radius:9px;overflow:hidden;background:var(--surf2);cursor:pointer}
+.gi img{width:100%;height:100%;object-fit:cover}
+.gio{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.72));padding:7px 5px 4px}
+.gim{font-size:8px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.04em}
+.gip{font-size:8px;color:rgba(255,255,255,.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gempty{grid-column:1/-1;text-align:center;padding:26px;color:var(--tx3);font-size:13px;line-height:1.6}
+.lbox{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.93);flex-direction:column;align-items:center;justify-content:center;padding:18px}
+.lbox.show{display:flex}
+.lbox img{max-height:70vh;border-radius:10px}
+.lbox-inf{color:rgba(255,255,255,.65);font-size:12px;margin-top:10px;text-align:center}
+.lbox-x{position:absolute;top:14px;right:14px;width:33px;height:33px;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="sl" class="screen active">
+  <div class="lh">
+    <div class="lb"><div class="ld"></div><span class="ln">Hormiga Negra · MB Snacks</span></div>
+    <h1 class="lt bb">MISIONES<br><span>DE CAMPO</span></h1>
+    <p class="ls">Seleccioná tu número de vendedor</p>
+  </div>
+  <div class="ll">Vendedores activos</div>
+  <div class="lg" id="vgrid"></div>
+  <div class="lbtns">
+    <button class="lbtn lbtn-pts" onclick="showPts()">🏅 Puntajes</button>
+    <button class="lbtn lbtn-dash" onclick="showDash()">🔒 Gerencial</button>
+  </div>
+</div>
+
+<!-- VENDOR -->
+<div id="sv" class="screen">
+  <div class="vh">
+    <div class="vht">
+      <button class="vhbk" onclick="goLogin()">←</button>
+      <div class="vhav bb" id="vhav"></div>
+      <div class="vhnb">
+        <div class="vhname bb" id="vhname"></div>
+        <div class="vhter" id="vhter"></div>
+      </div>
+      <div class="vhsb">
+        <div class="vhpts bb" id="vhpts">0</div>
+        <div class="vhplbl">pts</div>
+      </div>
+    </div>
+    <div class="vhprog">
+      <div class="vhpbar"><div class="vhpfill" id="vhpfill" style="width:0%"></div></div>
+      <div class="vhptxt" id="vhptxt">0/0</div>
+    </div>
+  </div>
+  <div class="df" id="df"></div>
+  <div id="day-sum-wrap"></div>
+  <div class="slbl"><span id="slbl-l">PDV</span><span id="slbl-r"></span></div>
+  <div class="pdvl" id="pdvl"></div>
+  <div class="bnav">
+    <button class="nb on" onclick="switchV('m')"><span class="ni">🎯</span>Misiones</button>
+    <button class="nb" onclick="switchV('r')"><span class="ni">🏆</span>Ranking</button>
+    <button class="nb" onclick="showPts()"><span class="ni">🏅</span>Puntajes</button>
+    <button class="nb" onclick="showDash()"><span class="ni">📊</span>Gerencial</button>
+  </div>
+</div>
+
+<!-- RANKING -->
+<div id="sr" class="screen">
+  <div class="rh">
+    <div class="rh-top">
+      <button class="rh-bk" onclick="goBack()">←</button>
+      <div>
+        <div class="rht bb">Ranking de Vendedores</div>
+        <div class="rhs">Puntaje acumulado · temporada actual</div>
+      </div>
+    </div>
+  </div>
+  <div class="rpod" id="rpod"></div>
+  <div class="rlist" id="rlist"></div>
+  <div class="bnav">
+    <button class="nb" onclick="switchV('m')"><span class="ni">🎯</span>Misiones</button>
+    <button class="nb on"><span class="ni">🏆</span>Ranking</button>
+    <button class="nb" onclick="showPts()"><span class="ni">🏅</span>Puntajes</button>
+    <button class="nb" onclick="showDash()"><span class="ni">📊</span>Gerencial</button>
+  </div>
+</div>
+
+<!-- PUNTAJES -->
+<div id="spt" class="screen">
+  <div class="ph">
+    <div class="ph-top">
+      <button class="ph-bk" onclick="goBack()">←</button>
+      <div>
+        <div class="ph-title bb">Puntajes por Misión</div>
+        <div class="ph-sub">Objetivos, avances y puntos · Hormiga Negra</div>
+      </div>
+    </div>
+    <div class="ph-summary" id="ph-summary"></div>
+  </div>
+  <div class="pt-section">Desglose por misión</div>
+  <div class="pt-list" id="pt-list"></div>
+  <div class="bnav">
+    <button class="nb" onclick="goBack()"><span class="ni">🏠</span>Volver</button>
+    <button class="nb" onclick="showRank()"><span class="ni">🏆</span>Ranking</button>
+    <button class="nb on"><span class="ni">🏅</span>Puntajes</button>
+    <button class="nb" onclick="showDash()"><span class="ni">📊</span>Gerencial</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="sd" class="screen">
+  <div class="dh">
+    <div class="dh-top">
+      <button class="dh-bk" onclick="goBack()">←</button>
+      <div class="dh-t bb">Dashboard Gerencial</div>
+    </div>
+    <div class="dh-sub" id="dhsub"></div>
+  </div>
+  <div id="dlock" class="dlock">
+    <div class="dlk-i">🔒</div>
+    <div class="dlk-t">Acceso gerencial</div>
+    <div class="dlk-s">Ingresá el PIN para ver los datos del equipo</div>
+    <div class="prow" id="pdots"><div class="pdot"></div><div class="pdot"></div><div class="pdot"></div><div class="pdot"></div></div>
+    <div class="pkp">
+      <button class="pk" onclick="pk('1')">1</button><button class="pk" onclick="pk('2')">2</button><button class="pk" onclick="pk('3')">3</button>
+      <button class="pk" onclick="pk('4')">4</button><button class="pk" onclick="pk('5')">5</button><button class="pk" onclick="pk('6')">6</button>
+      <button class="pk" onclick="pk('7')">7</button><button class="pk" onclick="pk('8')">8</button><button class="pk" onclick="pk('9')">9</button>
+      <button class="pk" onclick="pk('0')" style="grid-column:2">0</button>
+      <button class="pk del" onclick="pdel()">⌫</button>
+    </div>
+    <div class="perr hidden" id="perr">PIN incorrecto. Intentá de nuevo.</div>
+  </div>
+  <div id="dcont" class="hidden">
+    <div class="dtabs">
+      <button class="dtab on" onclick="dTab('ov')">Resumen</button>
+      <button class="dtab" onclick="dTab('vd')">Vendedores</button>
+      <button class="dtab" onclick="dTab('ph')">Fotos</button>
+      <button class="dtab" onclick="dTab('xl')">📥 Excel</button>
+    </div>
+    <div id="dp-ov" class="dpnl on">
+      <div class="kg" id="dkpis"></div>
+      <div class="stitle">Avance por Misión</div>
+      <div class="mbars" id="dmb"></div>
+    </div>
+    <div id="dp-vd" class="dpnl">
+      <div class="stitle" style="padding-top:13px">Progreso por Vendedor</div>
+      <div class="dvlist" id="dvlist"></div>
+    </div>
+    <div id="dp-ph" class="dpnl">
+      <div class="stitle" style="padding-top:13px">Evidencias fotográficas</div>
+      <div class="pgal" id="pgal"></div>
+    </div>
+    <div id="dp-xl" class="dpnl">
+      <div class="stitle" style="padding-top:13px">Exportar a Excel</div>
+      <div class="exp-wrap">
+        <div style="font-size:12px;color:var(--tx2);line-height:1.7;padding:10px 14px;background:var(--surf);border:1.5px solid var(--bdr);border-radius:12px;margin-bottom:12px">
+          Incluye <strong>resumen general</strong>, <strong>detalle por PDV</strong>, <strong>ranking</strong> y <strong>avance por misión</strong>. Datos en tiempo real de todos los vendedores.
+        </div>
+        <button class="exp-btn" onclick="exportXLSX(this)" style="margin-bottom:20px">📊 Descargar Informe Excel</button>
+      </div>
+      <div class="stitle" style="color:var(--red)">⚠️ Zona de Peligro</div>
+      <div class="exp-wrap">
+        <div style="font-size:12px;color:var(--tx2);line-height:1.7;padding:10px 14px;background:rgba(220,38,38,.05);border:1.5px solid rgba(220,38,38,.2);border-radius:12px;margin-bottom:12px">
+          Borra <strong>todos los progresos y fotos</strong> del servidor. Solo para limpiar pruebas antes de salir al campo. <strong>No se puede deshacer.</strong>
+        </div>
+        <div id="clr-wrap">
+          <button class="exp-btn" style="background:rgba(220,38,38,.08);border-color:rgba(220,38,38,.3);color:var(--red)" onclick="confirmClear()">🗑️ Borrar todos los datos de prueba</button>
+        </div>
+        <div id="clr-confirm" class="hidden" style="background:var(--surf);border:1.5px solid var(--red);border-radius:12px;padding:14px">
+          <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:8px">¿Estás seguro? Esto borra TODO.</div>
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:12px">Checkmarks, fotos y progreso de todos los vendedores del servidor.</div>
+          <div style="display:flex;gap:8px">
+            <button style="flex:1;padding:10px;border-radius:9px;background:var(--surf2);border:1.5px solid var(--bdr);font-size:13px;font-weight:700;color:var(--tx2);cursor:pointer" onclick="cancelClear()">Cancelar</button>
+            <button style="flex:1;padding:10px;border-radius:9px;background:var(--red);border:none;font-size:13px;font-weight:700;color:#fff;cursor:pointer" onclick="execClear(this)">Sí, borrar todo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="nb" onclick="goBack()"><span class="ni">🏠</span>Volver</button>
+    <button class="nb" onclick="showRank()"><span class="ni">🏆</span>Ranking</button>
+    <button class="nb" onclick="showPts()"><span class="ni">🏅</span>Puntajes</button>
+    <button class="nb on"><span class="ni">📊</span>Gerencial</button>
+  </div>
+</div>
+
+<!-- Congrats -->
+<div class="cov" id="cov">
+  <div class="ce">🎉</div>
+  <div class="ct bb">¡FELICITACIONES<br><span>CRACK!</span></div>
+  <div class="cs">Completaste todas las misiones del período.<br>¡El equipo está orgulloso de vos!</div>
+  <button class="cc" onclick="document.getElementById('cov').classList.remove('show')">Seguir →</button>
+</div>
+
+<!-- Lightbox -->
+<div class="lbox" id="lbox" onclick="closeLbox()">
+  <div class="lbox-x">✕</div>
+  <img id="lbox-img" src="" alt="">
+  <div class="lbox-inf" id="lbox-inf"></div>
+</div>
+
+<!-- DB Status -->
+<div class="db-status hidden" id="dbst"><div class="db-dot"></div><span id="dbst-tx">Conectando…</span></div>
+
+<script>
+// ═══════════════════════════════════════════
+// DATOS DE MISIONES
+// ═══════════════════════════════════════════
+const MC={
+  MK:{name:'Bajar Markup Lays',icon:'💰',pts:30,color:'#EA580C',
+      desc:'Negociar con el PDV para bajar el precio de venta de Lays y mejorar la competitividad frente a Quento/Julicroc.',
+      foto:'Foto del cartel de precios actualizado con el nuevo precio de Lays'},
+  PE:{name:'Plan Pehuamar',icon:'🎯',pts:25,color:'#7C3AED',
+      desc:'Visitar y ejecutar las acciones del plan Pehuamar en este PDV: exhibición, orden y disponibilidad del producto.',
+      foto:'Foto del producto Pehuamar exhibido y ordenado en el PDV'},
+  C9:{name:'Plan Combo 9+1',icon:'🤝',pts:40,color:'#DC2626',
+      desc:'Presentar y cerrar el combo 9+1 de bonificación para capturar volumen de Quento.',
+      foto:'Foto del pedido confirmado o remito firmado por el PDV'},
+  AF:{name:'Aumentar Frentes',icon:'📦',pts:35,color:'#2563EB',
+      desc:'Incrementar la cantidad de frentes de exhibición de Lays en la góndola del PDV.',
+      foto:'Foto frontal de la góndola mostrando los frentes de Lays aumentados'},
+  EX:{name:'Colocar Exhibidor',icon:'🏪',pts:50,color:'#059669',
+      desc:'Instalar un exhibidor PepsiCo/Lays en el PDV donde la competencia ya tiene uno.',
+      foto:'Foto del exhibidor instalado con productos Lays visibles'}
+};
+const M_ORDER=['EX','C9','AF','MK','PE'];
+const DIAS={Lu:'Lunes',Ma:'Martes',Mi:'Miércoles',Ju:'Jueves',Vi:'Viernes'};
+const DO=['Lu','Ma','Mi','Ju','Vi'];
+const PIN='1234';
+
+const PDV=[{"i":"400747","v":"1","n":"Drovetta Cesar Juan Domingo","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["MK","C9"]},{"i":"400752","v":"1","n":"Lopez Marcos Federico","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["MK","C9"]},{"i":"400766","v":"1","n":"Suligoy Alberto Raul","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400770","v":"1","n":"Battistella Miguel Angel","d":"Lu","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["MK","C9"]},{"i":"400976","v":"1","n":"Cabrera Maria Cristina","d":"Lu","s":"Rotiseria","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400995","v":"1","n":"Maina Gustavo Jose","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["MK","PE"]},{"i":"401560","v":"1","n":"Cañete Monica","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401739","v":"1","n":"Nudel Luis Ariel","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["MK","C9"]},{"i":"403338","v":"1","n":"Fernandez Gustavo ","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"404074","v":"1","n":"Martínez Javier Alejandro ","d":"Lu","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["MK","EX"]},{"i":"404190","v":"1","n":"Minimercado Peñaloza","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"400981","v":"1","n":"Masseroni Jorge Alberto","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401646","v":"1","n":"Alegrue Pablo","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403231","v":"1","n":"Adriana Beatriz Romero","d":"Ma","s":"Fiambreria","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401444","v":"1","n":"Gomez Nieto Hnos S. R. L","d":"Mi","s":"Autoservicio Tradicional","t":"Santa Fe","c":"2","m":["PE"]},{"i":"403112","v":"1","n":"Ruscitti Roxana","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"403302","v":"1","n":"Florencia Giuliani","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403499","v":"1","n":"Dai Quankun","d":"Mi","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["PE"]},{"i":"404233","v":"1","n":"Pablo Agustin Coronel","d":"Mi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401859","v":"1","n":"Emiliano Martin Schlishting","d":"Ju","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403217","v":"1","n":"Olga Guadalupe Ravano","d":"Ju","s":"Autoservicio Tradicional","t":"Santa Fe","c":"S","m":["PE"]},{"i":"404059","v":"1","n":"Brisa Novedades","d":"Ju","s":"Autoservicio Tradicional","t":"Santa Fe","c":"S","m":["PE"]},{"i":"404436","v":"1","n":"Distribuidora El Tata","d":"Ju","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400122","v":"1","n":"Franconi Jose Luis","d":"Vi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400142","v":"1","n":"Daniel Horacio Bertero","d":"Vi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400152","v":"1","n":"Tallarico Luis Sebastian Chamo","d":"Vi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"400200","v":"1","n":"Herrera Orlando Horacio","d":"Vi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"404307","v":"1","n":"Gaspar Salvador Pereson - Draxxo","d":"Vi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"500004","v":"1","n":"Weng Yuqing","d":"Vi","s":"Autoservicio Tradicional","t":"Santa Fe","c":"2","m":["PE"]},{"i":"400834","v":"1","n":"Comercial Galetti Hnos Srl","d":"Sá","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["PE"]},{"i":"400884","v":"1","n":"Zapata Laura Alejandra","d":"Sá","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9","AF"]},{"i":"401063","v":"1","n":"Guadalupe Sh De Altamiranda Ma","d":"Sá","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["PE"]},{"i":"403317","v":"1","n":"Mauricio Bushara","d":"Sá","s":"Mayoristas","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403821","v":"1","n":"Seguro Pablo Miguel","d":"Sá","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["MK"]},{"i":"400850","v":"2","n":"O Y L Variedades Srl","d":"Lu","s":"Mayoristas","t":"Santa Fe","c":"1","m":["MK","C9"]},{"i":"401069","v":"2","n":"Mareco Miguel Angel","d":"Lu","s":"Autoservicio Tradicional","t":"Santa Fe","c":"4","m":["PE"]},{"i":"401195","v":"2","n":"Peña Maria Fabiana","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["PE"]},{"i":"401715","v":"2","n":"Rafael Abel Diez","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403192","v":"2","n":"Lovino Gustavo","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["PE"]},{"i":"403281","v":"2","n":"Fabian Aquino ","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["MK","PE"]},{"i":"403282","v":"2","n":"Ochava 1","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"3","m":["AF"]},{"i":"403440","v":"2","n":"Emilio Victor Kesseler","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"3","m":["MK"]},{"i":"403532","v":"2","n":"Matias Cappanari","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["MK"]},{"i":"404006","v":"2","n":"Villagra Gabriela Gaudalupe","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"3","m":["AF"]},{"i":"404395","v":"2","n":"Punto Kiosco","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"3","m":["AF"]},{"i":"400210","v":"2","n":"Mascheroni Moreno Julio Imanol","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["MK"]},{"i":"401611","v":"2","n":"No Hay 2 Sin 3 ","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"3","m":["AF"]},{"i":"402449","v":"2","n":"Barreto Ignacio Martin ","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403737","v":"2","n":"Ignacio Martin Herraez","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"404024","v":"2","n":"Fourmarket","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"404046","v":"2","n":"Cesar Augusto Lisi - Mym","d":"Ma","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["MK","C9"]},{"i":"404410","v":"2","n":"Cesar Augusto Lisi - Mym","d":"Ma","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["MK","C9"]},{"i":"401272","v":"2","n":"Rodriguez Adriana","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"3","m":["MK"]},{"i":"401108","v":"2","n":"Ribot Edgardo Jorge","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"3","m":["MK"]},{"i":"401196","v":"2","n":"Lozano Evelin Guadalupe","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["MK","PE"]},{"i":"401251","v":"2","n":"Allasia Alicia Isabel","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["MK"]},{"i":"401557","v":"2","n":"Gonzalez Leonardo","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["MK"]},{"i":"401591","v":"2","n":"Mia Fiorella","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["PE"]},{"i":"401599","v":"2","n":"Diaz Maria Gabriela","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["MK"]},{"i":"401663","v":"2","n":"Graciela Socio","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["MK"]},{"i":"401701","v":"2","n":"Edgardo Jorge Ribot","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"3","m":["AF"]},{"i":"401776","v":"2","n":"Griselda Del Valle Sanchez","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["PE"]},{"i":"403211","v":"2","n":"Doblare Guillermo Nicolas","d":"Ju","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"4","m":["MK"]},{"i":"403358","v":"2","n":"Los Nietos","d":"Ju","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"4","m":["AF"]},{"i":"340751","v":"2","n":"Kiosco Pipita","d":"Sá","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["PE"]},{"i":"400378","v":"3","n":"Papaleo Conrado Jose","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"4","m":["AF"]},{"i":"400507","v":"3","n":"Wang Xiulian","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"2","m":["AF"]},{"i":"400600","v":"3","n":"Ruan Qinglin","d":"Lu","s":"Autoservicio Tradicional","t":"Santa Fe","c":"2","m":["AF"]},{"i":"400637","v":"3","n":"Su Suping","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"2","m":["MK","AF"]},{"i":"400645","v":"3","n":"Comercial Galetti Hnos Srl","d":"Lu","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["PE"]},{"i":"400698","v":"3","n":"Mecoli Victor Jose","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"2","m":["AF"]},{"i":"400749","v":"3","n":"Ruiz Diaz Rolando Daniel","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["AF"]},{"i":"400754","v":"3","n":"Castillo Susana Violeta","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9","AF"]},{"i":"400763","v":"3","n":"He Mingzhi","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"400773","v":"3","n":"Li Yuanchao","d":"Lu","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9","AF"]},{"i":"401634","v":"3","n":"Ramirez Jose Maria","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"401652","v":"3","n":"Dobler Eliana","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"2","m":["AF"]},{"i":"401681","v":"3","n":"Sara Edit Rodriguez","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"2","m":["AF"]},{"i":"401711","v":"3","n":"Ana Clara Roldan","d":"Lu","s":"Autoservicio Tradicional","t":"Santa Fe","c":"2","m":["PE"]},{"i":"403145","v":"3","n":"Octavio Maria Franciosi","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"403820","v":"3","n":"Chacon Jose ","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"403923","v":"3","n":"Canastrelli Tania","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["AF"]},{"i":"404258","v":"3","n":"Macarena Rocio Echagüe","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"2","m":["AF"]},{"i":"400357","v":"3","n":"Marsil Boulevard S. Cap I Secc Iv","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"400372","v":"3","n":"Peres Andres Sebastian","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"400464","v":"3","n":"Altamirano Federico Jose","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["MK","C9","AF","EX"]},{"i":"400635","v":"3","n":"Musuruana Andres","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["PE","AF"]},{"i":"400722","v":"3","n":"Gutierrez Jorge Benito Eloy","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"400780","v":"3","n":"Chiani Leandro Jesus","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"2","m":["AF"]},{"i":"400820","v":"3","n":"Villanueva Natalia Romina","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9","AF"]},{"i":"401544","v":"3","n":"Bonzi Mariano Ricardo","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"3","m":["AF"]},{"i":"401756","v":"3","n":"Jorge Alberto Palomeque","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"403477","v":"3","n":"Cesar Ariel Perello","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"401309","v":"3","n":"D Emilio Acevedo Claudio G","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"401404","v":"3","n":"Fabrissin Norma Beatriz","d":"Mi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"2","m":["AF"]},{"i":"401478","v":"3","n":"Arevalo Vanina Soledad","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["MK","PE"]},{"i":"403452","v":"3","n":"Silvana Marcela Morales","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"403700","v":"3","n":"Ramirez Bruno Gonzalo","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"401154","v":"3","n":"Todo Para Kioscos Srl","d":"Ju","s":"Autoservicio Tradicional","t":"Santa Fe","c":"S","m":["PE"]},{"i":"401170","v":"3","n":"Milessi Maria De Los Angeles","d":"Ju","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"2","m":["AF"]},{"i":"401205","v":"3","n":"Aguirre Valeria Ramona","d":"Ju","s":"Autoservicio Tradicional","t":"Santa Fe","c":"S","m":["PE"]},{"i":"400486","v":"3","n":"Bacigaluppi Matias Eduardo","d":"Vi","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"400491","v":"3","n":"Crespi Mabel Beatriz","d":"Vi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"2","m":["MK","AF"]},{"i":"400514","v":"3","n":"Maldonado Tamara Gisela","d":"Vi","s":"Fiambreria","t":"Santa Fe","c":"2","m":["AF"]},{"i":"400524","v":"3","n":"Oriz Silvia Graciela","d":"Vi","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"401256","v":"3","n":"Gabriel Alberto Alegre","d":"Sá","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"401601","v":"3","n":"Vera Jorge","d":"Sá","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["MK","AF"]},{"i":"403064","v":"3","n":"Bornisen Nahuel","d":"Sá","s":"Autoservicio Tradicional","t":"Santa Fe","c":"S","m":["PE"]},{"i":"403160","v":"3","n":"Francisco Javier Tozetto","d":"Sá","s":"Autoservicio Tradicional","t":"Santa Fe","c":"2","m":["AF"]},{"i":"400240","v":"4","n":"Chen Jianglin","d":"Lu","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["PE"]},{"i":"400983","v":"4","n":"Cabrera Iris Marga","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"400993","v":"4","n":"Fiorenza Luis Oscar","d":"Lu","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400994","v":"4","n":"Heredia Gladys Yolanda","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400997","v":"4","n":"Maria Laura Thobokhlot","d":"Lu","s":"Estacion de Servicio - NO OFICIALES","t":"Santa Fe","c":"1","m":["MK","C9"]},{"i":"401057","v":"4","n":"Porta Maria Cecilia","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["MK","C9"]},{"i":"401166","v":"4","n":"Cordoba Fernando, Seb. Y Juan","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["MK","C9"]},{"i":"401193","v":"4","n":"Martinez Torrico Y Torrico S.","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9","AF"]},{"i":"403201","v":"4","n":"Balbuena Martin","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"403215","v":"4","n":"Autoservicio Vieytes","d":"Lu","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["MK"]},{"i":"403478","v":"4","n":"Ale Kiosko","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403852","v":"4","n":"Analia Raquel Galiano","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403913","v":"4","n":"Almacen Alberti","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"404081","v":"4","n":"Almacen Byb","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"404260","v":"4","n":"Luciano Adriel Ojeda","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"404358","v":"4","n":"Bajo Cero","d":"Lu","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9"]},{"i":"404441","v":"4","n":"Guillermo Carmele - Quesolandia","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400630","v":"4","n":"Balear Sa","d":"Ma","s":"Panaderia","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400772","v":"4","n":"Chen Min","d":"Ma","s":"Autoservicio Tradicional","t":"Santa Fe","c":"2","m":["PE"]},{"i":"400776","v":"4","n":"El Rincon Del Queso S.A","d":"Ma","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["PE"]},{"i":"400779","v":"4","n":"Yossen Lisandro Luis Maria","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"403040","v":"4","n":"El Rincon Del Queso S.A","d":"Ma","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["PE"]},{"i":"403867","v":"4","n":"Gonzalez Julian","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["PE"]},{"i":"403870","v":"4","n":"Juan Manuel Cainelli","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"404225","v":"4","n":"Exequiel Adrover","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["MK"]},{"i":"401289","v":"4","n":"Torea Nora Gabriela","d":"Mi","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401301","v":"4","n":"Cirabisi Rosana Veronica","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["MK","C9"]},{"i":"401490","v":"4","n":"Vanni Beatriz Laura Ceferina","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"S","m":["PE"]},{"i":"404113","v":"4","n":"Sofia Belen Duso (Lo De Pedro)","d":"Mi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"404370","v":"4","n":"Varina Salemme","d":"Mi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401217","v":"4","n":"Espindola Martin Jose","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["PE"]},{"i":"401226","v":"4","n":"Lopez Ivana Melisa","d":"Ju","s":"Autoservicio Tradicional","t":"Santa Fe","c":"S","m":["PE"]},{"i":"403063","v":"4","n":"Calvo Estefania Soledad","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["PE"]},{"i":"403197","v":"4","n":"Qingqing Shi","d":"Ju","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["PE"]},{"i":"403386","v":"4","n":"Beltran Eunice","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403404","v":"4","n":"Anabela Fernandez","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"403543","v":"4","n":"Fernando Facundo","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403866","v":"4","n":"Olivos Exequiel","d":"Ju","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"404218","v":"4","n":"Guillermo Andres Dufour","d":"Ju","s":"Autoservicio Tradicional","t":"Santa Fe","c":"2","m":["AF"]},{"i":"400262","v":"4","n":"Villaverde Maria Carolina","d":"Vi","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["PE"]},{"i":"400270","v":"4","n":"Habash Dario Oscar","d":"Vi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400326","v":"4","n":"Lin Zhixiang","d":"Vi","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["PE"]},{"i":"403140","v":"4","n":"Yanina Paola Arrieta","d":"Vi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"403224","v":"4","n":"Pablo Eugenio Espigaros","d":"Vi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"404078","v":"4","n":"Torrico Soria Dunde","d":"Vi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401072","v":"4","n":"Cai Biying","d":"Sá","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["PE"]},{"i":"401134","v":"4","n":"Biying Cai","d":"Sá","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["PE"]},{"i":"403221","v":"4","n":"Barrientos Vanina","d":"Sá","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400592","v":"5","n":"Badano Monica Susana","d":"Lu","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["MK","C9"]},{"i":"400674","v":"5","n":"Chauderon Monica Liliana","d":"Lu","s":"Fiambreria","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400739","v":"5","n":"Irfe Sas","d":"Lu","s":"Mayoristas","t":"Santa Fe","c":"1","m":["C9","AF"]},{"i":"400838","v":"5","n":"Gutierrez Rodrigo Matias","d":"Lu","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["MK","PE"]},{"i":"400980","v":"5","n":"Petrella Diego Sebastian","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401026","v":"5","n":"Matera Mario Alberto","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"403108","v":"5","n":"Alber Georgina","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["MK","C9","AF"]},{"i":"403455","v":"5","n":"Imhoff Ivan ","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403883","v":"5","n":"Jabour Joaquin","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"403895","v":"5","n":"Tomas Alberto","d":"Lu","s":"Fiambreria","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403994","v":"5","n":"Decaillet Fernando","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"3","m":["AF"]},{"i":"404021","v":"5","n":"Ana Laura Lapissonde","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"404222","v":"5","n":"Jb Autoservicio","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"404255","v":"5","n":"Maria Fernanda Sacks","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"2","m":["AF"]},{"i":"400341","v":"5","n":"Salera Oscar Sergio","d":"Ma","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400363","v":"5","n":"Alvarez Fernando Andres","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["MK","C9","AF"]},{"i":"400403","v":"5","n":"Gil Ana Laura","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400414","v":"5","n":"Boz Alberto M Boz Mariano Y Bo","d":"Ma","s":"Estacion de Servicio - SHELL","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400494","v":"5","n":"Geller Raul Ignacio","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"3","m":["AF"]},{"i":"400565","v":"5","n":"Cristian Ariel Gutierrez","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400586","v":"5","n":"Delvo Carlos Daniel","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401997","v":"5","n":"Sanchez Matias Federico","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403107","v":"5","n":"Ernesto Juan Jesus Mantaras","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403512","v":"5","n":"Grupo Necochea  S. R. L. En Formaci","d":"Ma","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["PE"]},{"i":"404428","v":"5","n":"Francisco Ignacio Del Sastre","d":"Ma","s":"Rotiseria","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401314","v":"5","n":"Ariel Emiliano Y Gime","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"401349","v":"5","n":"Castro Vanina ","d":"Mi","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401364","v":"5","n":"Canoves Cristian Lionel","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"2","m":["AF"]},{"i":"401417","v":"5","n":"Catania Juan Jose","d":"Mi","s":"Estacion de Servicio - NO OFICIALES","t":"Santa Fe","c":"1","m":["MK"]},{"i":"401437","v":"5","n":"Staringer Claudio Nestor","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401481","v":"5","n":"Grosso Fabrizio Ignacio ","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"401582","v":"5","n":"Villareal Gonzalo","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE","AF"]},{"i":"401055","v":"5","n":"Ferronato Elisabet Carina","d":"Ju","s":"Autoservicio Tradicional","t":"Santa Fe","c":"S","m":["PE"]},{"i":"401750","v":"5","n":"Javier Williner","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403853","v":"5","n":"Mercadito El Sabalito","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"404175","v":"5","n":"Cesar Augusto Lisi - Mym","d":"Ju","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9","AF"]},{"i":"400349","v":"5","n":"Candelero Ana Maria","d":"Vi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401540","v":"5","n":"Andrea Guadalupe Ruiz","d":"Vi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401579","v":"5","n":"Mariela Rosana Gonzalez","d":"Vi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["MK","C9","AF","EX"]},{"i":"403553","v":"5","n":"Napoles","d":"Vi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403838","v":"5","n":"J&B Quesos","d":"Vi","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9"]},{"i":"404063","v":"5","n":"Stromayer Noelia","d":"Vi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"2","m":["AF"]},{"i":"400833","v":"5","n":"Lauretta Salvador","d":"Sá","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400857","v":"5","n":"Maldonado Tamara Gisela","d":"Sá","s":"Fiambreria","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400970","v":"5","n":"Deicas Abril Selene","d":"Sá","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401029","v":"5","n":"Iorlano Veronica Fabiana","d":"Sá","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401033","v":"6","n":"Imhoff Sergio Walter","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["EX"]},{"i":"401035","v":"6","n":"D Amelio Pascual","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["MK"]},{"i":"403339","v":"6","n":"Antonella Saavedra","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["PE","EX"]},{"i":"400646","v":"6","n":"Liao Meixiang","d":"Ma","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9"]},{"i":"400647","v":"6","n":"Leguizamon Julio Marcelo","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"3","m":["AF"]},{"i":"400743","v":"6","n":"Andres Mariano Altamiranda","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"404157","v":"6","n":"Ulises Ismael ","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"3","m":["AF"]},{"i":"401860","v":"6","n":"Florencia Amorina Migueletto","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"S","m":["PE"]},{"i":"403925","v":"6","n":"Gabriel Exequiel Catania","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["PE","EX"]},{"i":"404336","v":"6","n":"Pablo Agustin Coronel","d":"Mi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"401172","v":"6","n":"Leguiza Rosana Analia","d":"Ju","s":"Autoservicio Tradicional","t":"Santa Fe","c":"S","m":["PE"]},{"i":"401198","v":"6","n":"Oliver Alan Joel","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"403198","v":"6","n":"Pettineli Maria","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["PE"]},{"i":"403236","v":"6","n":"Lucas Espindola","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["PE"]},{"i":"404394","v":"6","n":"Ariana Antonela Zeballo","d":"Ju","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"4","m":["EX"]},{"i":"400269","v":"6","n":"San Cayetano","d":"Vi","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["PE"]},{"i":"400305","v":"6","n":"Romano Mario Alberto","d":"Vi","s":"Autoservicio Tradicional","t":"Santa Fe","c":"S","m":["PE"]},{"i":"403300","v":"6","n":"Lin Mingzhu","d":"Vi","s":"Autoservicio Tradicional","t":"Santa Fe","c":"S","m":["PE"]},{"i":"400913","v":"6","n":"Gisela Zilonka","d":"Sá","s":"Almacen/Despensa","t":"Santa Fe","c":"S","m":["PE"]},{"i":"402004","v":"7","n":"Schneider Daniel","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402041","v":"7","n":"Leonhardt Juan Pablo","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402054","v":"7","n":"Cai Junqing","d":"Lu","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402086","v":"7","n":"Mauri Patricia Griselda","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["MK","PE"]},{"i":"402097","v":"7","n":"Buet Gladis","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402198","v":"7","n":"Hang Raul Calisteo","d":"Lu","s":"Carniceria/Granja","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402211","v":"7","n":"Autoservicios Abdala S. R. L.","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402226","v":"7","n":"Petro Santafesina S.A.","d":"Lu","s":"Estacion de Servicio - SHELL","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402288","v":"7","n":"Maribel Celeste Bonvin","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["PE"]},{"i":"402310","v":"7","n":"Noelia Elisabet Antonioli","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402334","v":"7","n":"Horacio Juan Sieber","d":"Lu","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402349","v":"7","n":"Palomeque Yanina","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402409","v":"7","n":"Nmc S. R. L.","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402422","v":"7","n":"Echeverria Victor","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402469","v":"7","n":"Bertolotti Gianella","d":"Lu","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"2","m":["AF"]},{"i":"406267","v":"7","n":"Trod Melina ","d":"Lu","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402023","v":"7","n":"Sarmiento Alfredo","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402032","v":"7","n":"Gilarducci Fabian","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402082","v":"7","n":"Peirotti German Alejandro","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402117","v":"7","n":"Foos Maricel Alejandra","d":"Ma","s":"Fiambreria","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402123","v":"7","n":"Rodriguez Rita","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402153","v":"7","n":"Petrosantafesina S.A.","d":"Ma","s":"Estacion de Servicio - SHELL","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402165","v":"7","n":"Tschieder Nestor F","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402267","v":"7","n":"Andrea Carolina Bengochea","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402292","v":"7","n":"Gisela Beatriz Alamos","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402293","v":"7","n":"Vanesa Edith Sanchez","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402319","v":"7","n":"Sofia Micaela Maier","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402337","v":"7","n":"Autoservicios Abdala Srl","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402357","v":"7","n":"Sotelo Giuliana","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402359","v":"7","n":"Marcella Naila","d":"Ma","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402440","v":"7","n":"Yamile Miranda","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402451","v":"7","n":"Ghione Fabiana","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402464","v":"7","n":"Buttarelli Julia","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402471","v":"7","n":"Neyret Emiliano","d":"Ma","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402134","v":"7","n":"Schmuth Natalia","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402183","v":"7","n":"Nagel Griselda Ofellia","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402241","v":"7","n":"Borgagno Maria Del Rosario","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402244","v":"7","n":"Chiaro Raquel Guadalupe M De","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["PE"]},{"i":"402253","v":"7","n":"Fuliana Marina","d":"Mi","s":"Carniceria/Granja","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402370","v":"7","n":"Garcia Noelia Alejandra","d":"Mi","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402373","v":"7","n":"Li Chun","d":"Mi","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402377","v":"7","n":"Carolina Castellucho","d":"Mi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9","AF"]},{"i":"402398","v":"7","n":"Julieta Andrea Dutruel","d":"Mi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402403","v":"7","n":"Chiani Vanesa","d":"Mi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402406","v":"7","n":"Los Alemanes","d":"Mi","s":"Carniceria/Granja","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402431","v":"7","n":"Gimena Belen Ruiz","d":"Mi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402435","v":"7","n":"Guillermo Jose Exner","d":"Mi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"S","m":["AF"]},{"i":"402436","v":"7","n":"Mariela Bobedilla","d":"Mi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"S","m":["AF"]},{"i":"402456","v":"7","n":"Gazy ","d":"Mi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402460","v":"7","n":"Cantero Juanes","d":"Mi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402848","v":"7","n":"Veronica Pollos Y Fiambre","d":"Mi","s":"Fiambreria","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402849","v":"7","n":"Infantino Rosana","d":"Mi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"403383","v":"7","n":"Rodrigo Juan Carlos Vercesi","d":"Mi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402013","v":"7","n":"Vrancken Claudio Javier","d":"Ju","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402031","v":"7","n":"Amaya Daniela","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402066","v":"7","n":"Ramirez Raul","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402076","v":"7","n":"Defino Mariela","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402090","v":"7","n":"Barrios Cecilia Del Carmen","d":"Ju","s":"Panaderia","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402100","v":"7","n":"Lorenz Viviana","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402124","v":"7","n":"Tizianel Alicia","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402144","v":"7","n":"Kuchen Celestino","d":"Ju","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402261","v":"7","n":"Mauricio Roberto Garoni","d":"Ju","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402263","v":"7","n":"Leurino Negro Y Donnet S R L","d":"Ju","s":"Estacion de Servicio - YPF","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402271","v":"7","n":"Erba Nicolas Alfonso","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402298","v":"7","n":"Vanessa Cynthia Ruiz Diaz","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402352","v":"7","n":"Juliana Elisabet Mello","d":"Ju","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402369","v":"7","n":"Martorel Juan Pablo","d":"Ju","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402374","v":"7","n":"Domingo Ricardo Uviedo","d":"Ju","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402397","v":"7","n":"Jesica Leonhardt","d":"Ju","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402412","v":"7","n":"Coria Ludmila","d":"Ju","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402430","v":"7","n":"Soria Maria Milagros","d":"Ju","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402438","v":"7","n":"General Paz Food S.A.S.","d":"Ju","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9","EX"]},{"i":"402444","v":"7","n":"Soria Milagros","d":"Ju","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["MK","C9"]},{"i":"402850","v":"7","n":"Kiosco 51","d":"Ju","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402001","v":"7","n":"Alejandra Guadalupe Cassullo","d":"Vi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402008","v":"7","n":"Montini Valeria Elisabet","d":"Vi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402026","v":"7","n":"Guilarducci Lilian Maria Del R","d":"Vi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["PE"]},{"i":"402079","v":"7","n":"Azul Combustibles S.A.","d":"Vi","s":"Estacion de Servicio - NO OFICIALES","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402137","v":"7","n":"Kern Claudio Jose","d":"Vi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402159","v":"7","n":"Klaus Adriana","d":"Vi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402164","v":"7","n":"Haspert Claudia","d":"Vi","s":"Almacen/Despensa","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402185","v":"7","n":"Vanzini Ezequiel","d":"Vi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402225","v":"7","n":"Esperanza Combustible S.A","d":"Vi","s":"Estacion de Servicio - SHELL","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402273","v":"7","n":"Micaela Ayelen Laratti","d":"Vi","s":"Fiambreria","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402274","v":"7","n":"Jose Eduardo Pirola","d":"Vi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402277","v":"7","n":"Marisa Petrona Coria","d":"Vi","s":"Almacen/Despensa","t":"Santa Fe","c":"4","m":["EX"]},{"i":"402386","v":"7","n":"Trevisiano Vanina","d":"Vi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402419","v":"7","n":"Linling Fang","d":"Vi","s":"Autoservicio Tradicional","t":"Santa Fe","c":"1","m":["C9","EX"]},{"i":"402421","v":"7","n":"Carina Soledad","d":"Vi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402483","v":"7","n":"Leonhardt Jesica","d":"Vi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"402846","v":"7","n":"Cheng Li","d":"Vi","s":"Autoservicio Tradicional","t":"Santa Fe","c":"2","m":["PE"]},{"i":"404180","v":"7","n":"Desire Belen Flaviani","d":"Vi","s":"Kiosco/Maxikiosco","t":"Santa Fe","c":"1","m":["C9"]},{"i":"200211","v":"11","n":"Cuebas Rivas Paola Natacha","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"200276","v":"11","n":"Semborain Gisela Noemi","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"200351","v":"11","n":"Estacion De Servicio Laurencen","d":"Lu","s":"Estacion de Servicio - NO OFICIALES","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200403","v":"11","n":"Ulrich Cecilia Maria","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"200441","v":"11","n":"Marchetta Jose A.Y Marchetta A","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["PE"]},{"i":"200448","v":"11","n":"Ramirez R. D. Y Ramirez P.S.H","d":"Lu","s":"Autoservicio Tradicional","t":"Entre Rios","c":"2","m":["MK","PE","EX"]},{"i":"201702","v":"11","n":"Micaela Ailen Difiori","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK"]},{"i":"202380","v":"11","n":"Rodriguez Uciel","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK"]},{"i":"202597","v":"11","n":"Paola Natacha Cuebas Rivas","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"202756","v":"11","n":"Miguel Angel Tochi","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"200164","v":"11","n":"Olivo Antonio Daniel","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"200560","v":"11","n":"Muzaber Cristian Pablo","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"4","m":["MK"]},{"i":"200760","v":"11","n":"Gomez Maidana Melisa Gabriela","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"200776","v":"11","n":"Xue Jianping","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"200777","v":"11","n":"Lin Zijie","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["MK"]},{"i":"200781","v":"11","n":"Luna Azul Srl","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["MK"]},{"i":"201471","v":"11","n":"Huaxiong Pan","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["MK","PE"]},{"i":"202703","v":"11","n":"La Bestia","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK"]},{"i":"200676","v":"11","n":"Cardenia Brian","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"200770","v":"11","n":"Michelin Claudio","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["PE"]},{"i":"200115","v":"11","n":"Gutierrez Noelia Brenda Soledad","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"200278","v":"11","n":"Passarino Lautaro","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["MK","PE"]},{"i":"200352","v":"11","n":"Butus Silvia","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"200354","v":"11","n":"Pignalberi Santiago","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["PE"]},{"i":"200355","v":"11","n":"Burna Griselda Esther","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["PE"]},{"i":"200688","v":"11","n":"Dome Elbio H.","d":"Ju","s":"Autoservicio Tradicional","t":"Entre Rios","c":"S","m":["PE"]},{"i":"201507","v":"11","n":"Maria Eugenia Gimenez","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["PE"]},{"i":"200122","v":"11","n":"Sweet S.A.","d":"Vi","s":"Mayoristas","t":"Entre Rios","c":"2","m":["MK"]},{"i":"202408","v":"11","n":"Ayelen Elizabeth Gallegos","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200556","v":"11","n":"Super La Estrella Srl","d":"Sá","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"200176","v":"12","n":"Yang Zhenzhu","d":"Lu","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"200288","v":"12","n":"Chen Xiangkun","d":"Lu","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["EX"]},{"i":"200463","v":"12","n":"Uran Roxana","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["MK"]},{"i":"200549","v":"12","n":"Zhang Minchao Zheng","d":"Lu","s":"Autoservicio Tradicional","t":"Entre Rios","c":"S","m":["PE"]},{"i":"200375","v":"12","n":"Bertolotti Ruben Eberardo","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"2","m":["AF"]},{"i":"200446","v":"12","n":"Huang Xueying","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200774","v":"12","n":"Chen Mingxing","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"200778","v":"12","n":"Li Ping","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200069","v":"12","n":"Huang Jinhui","d":"Mi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"200684","v":"12","n":"Supermercado Basse Srl","d":"Mi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"2","m":["PE"]},{"i":"200039","v":"12","n":"Lin Hongjin","d":"Ju","s":"Autoservicio Tradicional","t":"Entre Rios","c":"S","m":["PE"]},{"i":"200285","v":"12","n":"Caraballo Aldo Daniel","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["PE"]},{"i":"200635","v":"12","n":"Berdun Graciela","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["PE"]},{"i":"200361","v":"12","n":"Franco Ever Ceferino","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["MK"]},{"i":"200385","v":"12","n":"Corbalan Maria","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"2","m":["MK"]},{"i":"200142","v":"13","n":"Grinovero Araceli","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["PE"]},{"i":"200273","v":"13","n":"Gutierrez Maria Jacqueline","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"200337","v":"13","n":"Rivas Gustavo Alberto","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"200343","v":"13","n":"Guan Chang","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"200443","v":"13","n":"Ke Ruijuan","d":"Lu","s":"Autoservicio Tradicional","t":"Entre Rios","c":"2","m":["MK","PE","AF"]},{"i":"200551","v":"13","n":"Chen Juan","d":"Lu","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"201132","v":"13","n":"La Properidad","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK"]},{"i":"201165","v":"13","n":"Martinez Alicia","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK"]},{"i":"201481","v":"13","n":"Pagani Luis","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201767","v":"13","n":"Gerstner Stella Maris","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"201768","v":"13","n":"Wilson Suarez","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["PE"]},{"i":"201987","v":"13","n":"Ayrton Bronde","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"3","m":["AF"]},{"i":"202481","v":"13","n":"Heintz Mirta","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"202730","v":"13","n":"Pamela Anahi Ridolfi","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["MK","EX"]},{"i":"200055","v":"13","n":"Lascano Jorge Alberto","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200068","v":"13","n":"Montero Nora Fabiana","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"S","m":["PE"]},{"i":"200084","v":"13","n":"Ferreyra Matias Rafael","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200484","v":"13","n":"Pereyra Maria Cristina","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"200552","v":"13","n":"Zhang Zhixiang","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["MK"]},{"i":"200555","v":"13","n":"Chen Qiushou","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"3","m":["MK","AF"]},{"i":"201693","v":"13","n":"Kioskomyn","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["MK","EX"]},{"i":"201899","v":"13","n":"Luchini Sol","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"3","m":["AF"]},{"i":"201916","v":"13","n":"Fontana Facundo Ariel","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["MK"]},{"i":"202506","v":"13","n":"Jonatan Emanuel Frias","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["C9"]},{"i":"202700","v":"13","n":"Lorenzo Quinteros","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"202733","v":"13","n":"Shengfeng S. R. L.","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200042","v":"13","n":"Yu Meifang","d":"Mi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["MK"]},{"i":"200053","v":"13","n":"Supermercado La Casa","d":"Mi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"2","m":["PE","AF"]},{"i":"200095","v":"13","n":"Schoenfeld Martin Emiliano (Friotek","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"200121","v":"13","n":"Sosa Rosana Ines","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"200284","v":"13","n":"Ramirez Lorena Paola Suc 2","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["PE"]},{"i":"200649","v":"13","n":"Aguilera Diego Gustavo","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200687","v":"13","n":"Supermercado Fontana","d":"Mi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200690","v":"13","n":"Li Meizi","d":"Mi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["MK"]},{"i":"200691","v":"13","n":"Zhu Jianyong","d":"Mi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["MK"]},{"i":"200771","v":"13","n":"Lobo Gustavo Hernan","d":"Mi","s":"Carniceria/Granja","t":"Entre Rios","c":"4","m":["MK"]},{"i":"201473","v":"13","n":"Chavez Santiago Emanuel","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK","EX"]},{"i":"201488","v":"13","n":"Cardozo Mauricio Nicolas","d":"Mi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201615","v":"13","n":"Gonzalez Yolanda Y Romero Pablo Soc","d":"Mi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201707","v":"13","n":"Villalba Brenda Magali","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"202425","v":"13","n":"Estela Carina Abrard","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"202688","v":"13","n":"Preyra Oscar Joel ","d":"Mi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"202691","v":"13","n":"Ludmila Micaela Juber","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["C9","EX"]},{"i":"200246","v":"13","n":"Dona Santiago Daniel","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK","PE"]},{"i":"200257","v":"13","n":"Carina Valeria Larrosa","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"200348","v":"13","n":"Seip Roxana Maria Del Valle","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["PE"]},{"i":"200407","v":"13","n":"Monzon Eduardo","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200413","v":"13","n":"Avellaneda Hector Fabian","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["PE"]},{"i":"201705","v":"13","n":"Las Calandrias S.A.S.","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK","EX"]},{"i":"202622","v":"13","n":"Antonella Maribel Gimenez","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK","PE"]},{"i":"202682","v":"13","n":"Emanuel Matias Carapella","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"202761","v":"13","n":"Lunazul S.R.L","d":"Ju","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200151","v":"13","n":"Zhuang Jimbiao","d":"Vi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"200177","v":"13","n":"Zheng Yongquan","d":"Vi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["MK"]},{"i":"200599","v":"13","n":"Maldonado Flavio Jose","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["PE"]},{"i":"200613","v":"13","n":"Weinsettel Pedro Rogelio","d":"Vi","s":"Estacion de Servicio - NO OFICIALES","t":"Entre Rios","c":"1","m":["C9","AF","EX"]},{"i":"200616","v":"13","n":"Benedetich Cristina Marta","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"200624","v":"13","n":"Moreyra Beatriz Del Carmen","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["PE"]},{"i":"200625","v":"13","n":"Morena Dominguez","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK","EX"]},{"i":"200692","v":"13","n":"Hu Zhongping","d":"Vi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["MK"]},{"i":"202416","v":"13","n":"Langchwager Cecilia Noemi","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["C9"]},{"i":"202640","v":"13","n":"Facundo Ariel Fontana","d":"Vi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"4","m":["MK"]},{"i":"200514","v":"13","n":"Aiello Antonella Tania","d":"Sá","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"200559","v":"13","n":"Weng Guihua","d":"Sá","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"200775","v":"13","n":"Chen Jianda","d":"Sá","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201617","v":"13","n":"Anibal Fabian Politi","d":"Sá","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK","EX"]},{"i":"201965","v":"13","n":"Angela Romina Bairros Da Cruz","d":"Sá","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201978","v":"13","n":"Guan Feng","d":"Sá","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200986","v":"14","n":"Hentschel Juan","d":"Lu","s":"Autoservicio Tradicional","t":"Entre Rios","c":"4","m":["PE"]},{"i":"200995","v":"14","n":"Porrchneg Ramon Orlando","d":"Lu","s":"Autoservicio Tradicional","t":"Entre Rios","c":"4","m":["PE"]},{"i":"201002","v":"14","n":"Huang Wenyong","d":"Lu","s":"Autoservicio Tradicional","t":"Entre Rios","c":"4","m":["PE"]},{"i":"201004","v":"14","n":"Meier Monica Cristina","d":"Lu","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"201005","v":"14","n":"Gareis Ariel","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201015","v":"14","n":"Somer Sandra Mariela","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["PE"]},{"i":"201019","v":"14","n":"Gottig Marcelo Y Cia","d":"Lu","s":"Estacion de Servicio - NO OFICIALES","t":"Entre Rios","c":"1","m":["MK","AF"]},{"i":"201022","v":"14","n":"Valdemarin Luz Marina Guadalupe","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["PE","EX"]},{"i":"201025","v":"14","n":"Lin Angel Valeria Feng","d":"Lu","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"201040","v":"14","n":"Burgos Franco Ezequiel","d":"Lu","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"201049","v":"14","n":"Gerner Alexis","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201050","v":"14","n":"Mino Juan Carlos","d":"Lu","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"201053","v":"14","n":"La Agricola Regional","d":"Lu","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"201057","v":"14","n":"Alva Josue Saul","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"201069","v":"14","n":"Clauser Srl","d":"Lu","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["MK","PE"]},{"i":"201520","v":"14","n":"Burgos Franco Ezequiel","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201920","v":"14","n":"Carlos Ruben Lell","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"202389","v":"14","n":"Oscar Alberto Cappellacci","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["PE","EX"]},{"i":"202409","v":"14","n":"Gottig Claudio","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"202539","v":"14","n":"Lucrecia Emiliana Muñoz","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"202680","v":"14","n":"Marina Silvana Retamar","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"202752","v":"14","n":"German Edgar Schimpf","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"200852","v":"14","n":"Capella Raul Alberto","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9","EX"]},{"i":"200856","v":"14","n":"Spretz Daniel","d":"Ma","s":"Carniceria/Granja","t":"Entre Rios","c":"4","m":["EX"]},{"i":"200857","v":"14","n":"Guo Xexue","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["MK","PE"]},{"i":"200858","v":"14","n":"Rodriguez Nancy","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["AF"]},{"i":"200859","v":"14","n":"Gimenez Nestor Delmiro","d":"Ma","s":"Panaderia","t":"Entre Rios","c":"1","m":["MK"]},{"i":"200861","v":"14","n":"Planiscig Raul Bernardo","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["AF","EX"]},{"i":"200865","v":"14","n":"Fernandez Roxana Carina","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"200866","v":"14","n":"Lange Rogelio Ezequiel","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"200872","v":"14","n":"Lin Kunren","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"200893","v":"14","n":"Lin Kunren","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"201559","v":"14","n":"Gerardo Raul Baroli","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"4","m":["PE"]},{"i":"201609","v":"14","n":"Agustin Javier Bonifacio Lo Celso","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201643","v":"14","n":"Las Dos Hermanas S. A. S.","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK","PE"]},{"i":"201775","v":"14","n":"Hector Damian Dening","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["AF"]},{"i":"201988","v":"14","n":"Francisco Luis Naput","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"4","m":["PE"]},{"i":"202229","v":"14","n":"Ariel Robert Foos","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["PE","AF"]},{"i":"202340","v":"14","n":"Ana Maria Soledad Poliszczuk","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["PE","EX"]},{"i":"202355","v":"14","n":"Taborda Daniela Fabiana","d":"Ma","s":"Fiambreria","t":"Entre Rios","c":"1","m":["PE"]},{"i":"202438","v":"14","n":"Agustina Yazmin Olivera","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"202545","v":"14","n":"Barbara Noemi Pereyra","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["PE","EX"]},{"i":"202564","v":"14","n":"Agostina Maria Alejandra Blanco","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"202714","v":"14","n":"Damian Jonathan Emmanuel Rebozio","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"200943","v":"14","n":"Rattero Marina Belen","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"200961","v":"14","n":"Borgetto Nelson Lujan","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"200964","v":"14","n":"Flocco Nestor Osvaldo","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["PE"]},{"i":"200967","v":"14","n":"Bolzan Sonia Yanina","d":"Mi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"200974","v":"14","n":"Cabaña Rita Viviana","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["PE"]},{"i":"201401","v":"14","n":"Borget Sara","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201405","v":"14","n":"Cordoba Ivan Dario","d":"Mi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201410","v":"14","n":"Viola Nanci Liliana","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["PE"]},{"i":"201418","v":"14","n":"Romero Julian","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201423","v":"14","n":"Vera Lucila","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201440","v":"14","n":"Horst Hugo Alberto","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201562","v":"14","n":"Mariana Lorena Romero","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201861","v":"14","n":"Roque Bautista Borgetto","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"202000","v":"14","n":"Roberto Fabian Heffling","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"202383","v":"14","n":"Matias Sebastian Mendieta","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"202609","v":"14","n":"Humataca Miriam Rafaela","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"200996","v":"14","n":"Reisenauer Andrea Maricel Y Beade J","d":"Ju","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"201003","v":"14","n":"Ulrich Sandra Natalia","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201012","v":"14","n":"Gassmann Gabriela Soledad","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201017","v":"14","n":"Dai Yan Hong Sucursal","d":"Ju","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"201021","v":"14","n":"Erhardt Hermanos Srl","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["AF"]},{"i":"201031","v":"14","n":"Franco Daniel Langoni","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201066","v":"14","n":"Ladona Silvia Maria","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201071","v":"14","n":"Washinger Maria Emilia","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201104","v":"14","n":"Carlos Sebastian Vivas","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201130","v":"14","n":" Müller Daiana Beatriz","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201989","v":"14","n":"Gisela Marina Medrano","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"202453","v":"14","n":"Mabel Mercedes Frank","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"202491","v":"14","n":"El Garage","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"202633","v":"14","n":"Claudio Alejandro Ledesma","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK"]},{"i":"202641","v":"14","n":"Jonatan Gaston Del Valle","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"202646","v":"14","n":"Viviana Graciela Panicali","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"202689","v":"14","n":"Gareis Mirta","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201074","v":"14","n":"Frickel Diego Javier","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"201290","v":"15","n":"Cobal Sa    (Plaza)","d":"Lu","s":"Cadena Regional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201316","v":"15","n":"Arletaz Estela Rosa","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK","C9"]},{"i":"201259","v":"15","n":"Vernaz Daniela","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"201289","v":"15","n":"Baima Lidia Cristela","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201310","v":"15","n":"Cobal Sa (Disney)","d":"Ma","s":"Cadena Regional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201738","v":"15","n":"Giménez Sergio Nicolas ","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"201242","v":"15","n":"Flier Norma Beatriz","d":"Mi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"201264","v":"15","n":"Villa Daniela Sucursal","d":"Mi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"201265","v":"15","n":"Martinez Juan Angel","d":"Mi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201293","v":"15","n":"Cobal Sa (Norte)","d":"Mi","s":"Cadena Regional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201295","v":"15","n":"Cobal Brasil","d":"Mi","s":"Cadena Regional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201302","v":"15","n":"Sauan Amado Martin","d":"Mi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"4","m":["MK"]},{"i":"201315","v":"15","n":"Mendieta Josefa A.","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["MK","C9"]},{"i":"201347","v":"15","n":"Valli Luciana Victoria","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"201349","v":"15","n":"Redruello Maria Soledad","d":"Mi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"201354","v":"15","n":"Van Cauwenberghe Nahuel Sebastian","d":"Mi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"202442","v":"15","n":"Cobal Sa (Irigoyen)","d":"Mi","s":"Cadena Regional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"202741","v":"15","n":"Juan Manuel Van Opstal","d":"Mi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201208","v":"15","n":"Minovich Sofia","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201213","v":"15","n":"Lin Pingping","d":"Ju","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201298","v":"15","n":"Barragan Mariana Grisel","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201894","v":"15","n":"Barreto Matías Exequiel","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"205001","v":"15","n":"Pablo Rodolfo Charles Mengeon","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["MK","C9"]},{"i":"205002","v":"15","n":"Estela Marina Aguirre","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"205003","v":"15","n":"Yan Lanhua","d":"Vi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"4","m":["MK"]},{"i":"205004","v":"15","n":"Hongying Weng","d":"Vi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"4","m":["MK","EX"]},{"i":"205008","v":"15","n":"Luis Alcides Marsoratti","d":"Vi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"205011","v":"15","n":"Maria Paula Cracco","d":"Vi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"205014","v":"15","n":"Emilio Eduardo Fritzler","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK","EX"]},{"i":"205019","v":"15","n":"Daiana Pamela Hill","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["C9"]},{"i":"205030","v":"15","n":"Miami Multirubros Sociedad Ley 1955","d":"Vi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"205032","v":"15","n":"Ping Chen","d":"Vi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"4","m":["MK"]},{"i":"201138","v":"16","n":"Victor Fabio Corona","d":"Lu","s":"Estacion de Servicio - NO OFICIALES","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201784","v":"16","n":"Saizhu Ouyang","d":"Lu","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201795","v":"16","n":"Cardozo Carlos","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201796","v":"16","n":"Riera Carlos Yamil Suc","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201820","v":"16","n":"Chen Xia","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201821","v":"16","n":"Wu Lihong","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201835","v":"16","n":"Burdese Ariel Anibal","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201836","v":"16","n":"Gran Maria Srl","d":"Ma","s":"Estacion de Servicio - NO OFICIALES","t":"Entre Rios","c":"1","m":["MK"]},{"i":"201849","v":"16","n":"Akermann Claudio Ever","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201858","v":"16","n":"Tymczyszyn Maria Fernanda","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200001","v":"16","n":"Eduardo Mateos S.R.L","d":"Mi","s":"Estacion de Servicio - SHELL","t":"Entre Rios","c":"1","m":["MK"]},{"i":"200798","v":"16","n":"Welschen Pedro","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200806","v":"16","n":"De Angeli Exequiel Andres","d":"Mi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200807","v":"16","n":"Schmidt Estela Patricia","d":"Mi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200824","v":"16","n":"Nani Mariana Amalia","d":"Mi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201141","v":"16","n":"Mario Cesar Ronchi - Ypf - ","d":"Mi","s":"Estacion de Servicio - NO OFICIALES","t":"Entre Rios","c":"1","m":["MK"]},{"i":"202372","v":"16","n":"Sacks Francisco","d":"Mi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"202462","v":"16","n":"Gabriela Maricel Iacob","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["C9"]},{"i":"202470","v":"16","n":"Matias Emanuel Deshayes","d":"Mi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"202551","v":"16","n":"Juan Pablo Urrutia - Don Carlo -","d":"Mi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200226","v":"16","n":"Colichelli Mariana Marcela","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200447","v":"16","n":"La Peruana S.R.L.","d":"Ju","s":"Autoservicio Tradicional","t":"Entre Rios","c":"2","m":["PE","AF"]},{"i":"200507","v":"16","n":"Batauz Sergio","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"200525","v":"16","n":"Wang Baozhu","d":"Ju","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["PE"]},{"i":"201580","v":"16","n":"Weng Weibin","d":"Ju","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"201629","v":"16","n":"Fehleissen Osvaldo Gabriel","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"202407","v":"16","n":"Riehme Maximiliano ","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["C9"]},{"i":"202533","v":"16","n":"Daniel Osvaldo Lanzi","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["C9"]},{"i":"202620","v":"16","n":"Hugo Orlando Moncy","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"202736","v":"16","n":"Acosta Candela","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["EX"]},{"i":"200927","v":"16","n":"Zhu Zhiqi","d":"Vi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["MK"]},{"i":"200935","v":"16","n":"Muller Jorge Martin","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200959","v":"16","n":"Cardoso Fernando Enedin","d":"Vi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200976","v":"16","n":"Lin Liqin","d":"Vi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"200979","v":"16","n":"Vernackt Rosa Catalina","d":"Vi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["EX"]},{"i":"201155","v":"16","n":"Chen Mitsumi","d":"Vi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["C9"]},{"i":"206112","v":"17","n":"Bolognini Fernando Miguel","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206120","v":"17","n":"Barolin Carlos Alejandro","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"3","m":["MK","AF"]},{"i":"206125","v":"17","n":"Mariano Jorge","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["MK"]},{"i":"206132","v":"17","n":"Larocca Bruno Saul","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK","EX"]},{"i":"206133","v":"17","n":"Caino Carina Andrea","d":"Lu","s":"Mayoristas","t":"Entre Rios","c":"1","m":["EX"]},{"i":"206138","v":"17","n":"Leguiza Susana Analia","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK"]},{"i":"206179","v":"17","n":"Lopez Marcelo","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["MK"]},{"i":"206281","v":"17","n":"Lg","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK","EX"]},{"i":"206310","v":"17","n":"Cabrera Diana Dora","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["MK","AF","EX"]},{"i":"206330","v":"17","n":"Sandoval Luisa","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK"]},{"i":"206335","v":"17","n":"Barolin Gladis Mabel","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206361","v":"17","n":"Javier Alejandro Gimenez","d":"Lu","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["MK"]},{"i":"206412","v":"17","n":"Juan Cruz Bonaldi","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK"]},{"i":"206421","v":"17","n":"Ezequiel Alen","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["EX"]},{"i":"206422","v":"17","n":"Ye Faquin","d":"Lu","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK","EX"]},{"i":"206118","v":"17","n":"Siboldi Mirta Yolanda","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["MK"]},{"i":"206130","v":"17","n":"Rossi Indiana Romina","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206139","v":"17","n":"Servicios Del Litoral Srl ","d":"Ma","s":"Estacion de Servicio - YPF","t":"Entre Rios","c":"1","m":["MK","AF","EX"]},{"i":"206148","v":"17","n":"Flores Dante","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206153","v":"17","n":"Gimenez Amelio","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["AF"]},{"i":"206154","v":"17","n":"Olivo Wilton Eduardo","d":"Ma","s":"Carniceria/Granja","t":"Entre Rios","c":"1","m":["MK"]},{"i":"206158","v":"17","n":"Seiguer Hugo Daniel","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206159","v":"17","n":"Mariela Soledad Claucich","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK"]},{"i":"206163","v":"17","n":"Bruschi Luciano","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206165","v":"17","n":"Villan Stella Maris","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206170","v":"17","n":"Izaguirre Nora","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"3","m":["MK","AF"]},{"i":"206172","v":"17","n":"Medina Eduardo Hernan","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206174","v":"17","n":"Lukacs Natalia","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206180","v":"17","n":"Gomez Rosana Judit","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206181","v":"17","n":"Royal Distribuciones Sa","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206203","v":"17","n":"Juaquin Bertinat","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK"]},{"i":"206338","v":"17","n":"Barolin Daiana","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206348","v":"17","n":"Mariano Baldi","d":"Ma","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206363","v":"17","n":"Cooperativa Agropecuaria La Paz Ltd","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["MK"]},{"i":"206368","v":"17","n":"Super Ya","d":"Ma","s":"Autoservicio Tradicional","t":"Entre Rios","c":"4","m":["MK","EX"]},{"i":"206397","v":"17","n":"Taborda Luis","d":"Ma","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206202","v":"17","n":"Barolin  Eliet Viviana","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206206","v":"17","n":"Chen Lizhu","d":"Mi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206224","v":"17","n":"Cabrera Lorena","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206241","v":"17","n":"Carnicería El Mencho","d":"Mi","s":"Carniceria/Granja","t":"Entre Rios","c":"3","m":["MK","AF"]},{"i":"206244","v":"17","n":"Forastieri Tomas Maximo","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206247","v":"17","n":"Nancy Paola Fontanini","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206251","v":"17","n":"Lopez Javier Daniel","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK","AF"]},{"i":"206254","v":"17","n":"Despensa \"La Margarita\"","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206286","v":"17","n":"Flor Horacio","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206317","v":"17","n":"Sabrina Natalia Barolin","d":"Mi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206331","v":"17","n":"Loiti Juan","d":"Mi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206399","v":"17","n":"Nazareno Gemez","d":"Mi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK","EX"]},{"i":"206030","v":"17","n":"Gimenez Lisandro Y Alfonso Sh","d":"Ju","s":"Estacion de Servicio - NO OFICIALES","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206081","v":"17","n":"Cepeda Graciela","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206086","v":"17","n":"Patricia Lorena Quartino","d":"Ju","s":"Estacion de Servicio - NO OFICIALES","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206100","v":"17","n":"Monzon Eliana Maricel","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206262","v":"17","n":"Julio Pittavino ","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206334","v":"17","n":"Marcelo Gottig Y Cia.S.A","d":"Ju","s":"Estacion de Servicio - AXION","t":"Entre Rios","c":"1","m":["MK"]},{"i":"206372","v":"17","n":"Elsa Liliana Debinski","d":"Ju","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["MK","C9"]},{"i":"206373","v":"17","n":"Alejandra Haydee Guillen","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK","EX"]},{"i":"206375","v":"17","n":"Separo Diego","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK"]},{"i":"206379","v":"17","n":"Jose E Guillen E Hijas Srl Ef","d":"Ju","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["MK","C9","EX"]},{"i":"206380","v":"17","n":"Graffique","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206387","v":"17","n":"Facundo Horacio Cordoba","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206388","v":"17","n":"Zulema Beatriz Ruks","d":"Ju","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206389","v":"17","n":"Miguel Raul Godoy","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK","C9"]},{"i":"206400","v":"17","n":"Francisco Javier Franco","d":"Ju","s":"Autoservicio Tradicional","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206402","v":"17","n":"Ruiz Emylce","d":"Ju","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206404","v":"17","n":"Luana Valeria Rodriguez","d":"Ju","s":"Autoservicio Tradicional","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206002","v":"17","n":"Bianchini Hector Alejandro","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206007","v":"17","n":"Nelli Sergio Gaston","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206012","v":"17","n":"Cabrera Maira Gisela","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206020","v":"17","n":"Fernandez Bruno","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK","EX"]},{"i":"206021","v":"17","n":"Hormachea Leonardo","d":"Vi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206022","v":"17","n":"Andrea Aguer","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206023","v":"17","n":"Puig Exequiel Augusto","d":"Vi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK","C9"]},{"i":"206037","v":"17","n":"Lopez Concion Damian Alberto","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206039","v":"17","n":"Srl Supermercados Haspert","d":"Vi","s":"Autoservicio Tradicional","t":"Entre Rios","c":"1","m":["MK","C9","EX"]},{"i":"206045","v":"17","n":"Quartino Jorge","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206050","v":"17","n":"Luquez Hector Cristian Ramon","d":"Vi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206055","v":"17","n":"Wang Mingyue","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"1","m":["MK","C9","EX"]},{"i":"206057","v":"17","n":"Nelida Beatriz Viana","d":"Vi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK"]},{"i":"206063","v":"17","n":"Vega Jose Ernesto","d":"Vi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"1","m":["MK"]},{"i":"206259","v":"17","n":"Heredia Ruben ","d":"Vi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206274","v":"17","n":"Despensa Victoria ","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206320","v":"17","n":"Magariños Gonzalo","d":"Vi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206358","v":"17","n":"Wang Xiufang","d":"Vi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206367","v":"17","n":"El Buen Vecino","d":"Vi","s":"Almacen/Despensa","t":"Entre Rios","c":"4","m":["MK","AF"]},{"i":"206407","v":"17","n":"Salva Silvio","d":"Vi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]},{"i":"206418","v":"17","n":"Martinez Paulo Cesar","d":"Vi","s":"Kiosco/Maxikiosco","t":"Entre Rios","c":"4","m":["MK"]}];
+
+// ═══════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════
+let VID=null,DAY=null,DUNLOCKED=false;
+let FS=null,FNS=null;           // Firebase db + functions
+let SP={};                      // SP[v] = {"pid::m":{done,ts}}
+let PC={};                      // PC[v] = {"pid::m": base64}
+let photoUnsub=null;
+
+// ═══════════════════════════════════════════
+// FIREBASE INIT
+// ═══════════════════════════════════════════
+window.addEventListener('db-ready', async () => {
+  if(!window._dbReady){
+    setDbUI(false,'Sin Firebase');
+    rLogin();
+    return;
+  }
+  FS = window._db;
+  FNS = window._fns;
+  setDbUI(true,'En línea 🔴');
+
+  // Suscribir a los 14 documentos de progreso de vendedores
+  uvs().forEach(v => {
+    const ref = FNS.doc(FS, `vendor_progress/${v}`);
+    FNS.onSnapshot(ref, snap => {
+      SP[v] = snap.exists() ? (snap.data()?.completions || {}) : {};
+      onLiveUpdate(v);
+    }, err => console.warn('snap error v'+v, err));
+  });
+
+  rLogin();
+});
+
+function subscribeVendorPhotos(v){
+  if(photoUnsub){try{photoUnsub()}catch{}}
+  photoUnsub=null;
+  if(!FS)return;
+  try{
+    const q=FNS.query(FNS.collection(FS,'photos'),FNS.where('v','==',v));
+    photoUnsub=FNS.onSnapshot(q, snap=>{
+      PC[v]={};
+      snap.forEach(d=>{const x=d.data();if(x.img)PC[v][x.pid+'::'+x.m]=x.img});
+      const act=document.querySelector('.screen.active')?.id;
+      if(act==='sv')rVMs();
+    },err=>console.warn('photo snap err',err));
+  }catch(e){console.warn('photo sub err',e)}
+}
+
+function setDbUI(ok, txt){
+  const el=document.getElementById('dbst');
+  el.classList.remove('hidden');
+  el.className='db-status '+(ok?'db-ok':'db-off');
+  document.getElementById('dbst-tx').textContent=txt||(ok?'En línea':'Sin conexión');
+}
+
+function onLiveUpdate(v){
+  const id=document.querySelector('.screen.active')?.id;
+  if(id==='sv'&&VID===v){rVHead();rVMs()}
+  if(id==='sr')rRank();
+  if(id==='spt')rPuntajes();
+  if(id==='sd'&&DUNLOCKED)rDCont();
+  if(id==='sl')rLogin();
+}
+
+// ═══════════════════════════════════════════
+// COMPLETIONS
+// ═══════════════════════════════════════════
+function ck(i,m){return`${i}::${m}`}
+
+function getVC(v){
+  if(FS)return SP[v]||{};
+  // localStorage fallback
+  try{
+    const all=JSON.parse(localStorage.getItem('hn_c')||'{}');
+    const r={};
+    Object.entries(all).forEach(([k,d])=>{if(d.vendor===String(v))r[k]=d});
+    return r;
+  }catch{return{}}
+}
+
+async function saveComp(vid,pid,m,done){
+  const k=ck(pid,m);const data={done,ts:Date.now()};
+  if(!SP[vid])SP[vid]={};SP[vid][k]=data;          // optimistic
+  if(FS){
+    try{
+      const ref=FNS.doc(FS,`vendor_progress/${vid}`);
+      const snap=await FNS.getDoc(ref);
+      const comps=snap.exists()?{...(snap.data()?.completions||{})}:{};
+      comps[k]=data;
+      await FNS.setDoc(ref,{completions:comps,lastUpdate:Date.now()});
+    }catch(e){console.warn('comp save err',e);lsSet(k,{...data,vendor:vid})}
+  }else{lsSet(k,{...data,vendor:vid})}
+}
+
+function lsSet(k,d){try{const a=JSON.parse(localStorage.getItem('hn_c')||'{}');a[k]=d;localStorage.setItem('hn_c',JSON.stringify(a))}catch{}}
+
+// ═══════════════════════════════════════════
+// FOTOS
+// ═══════════════════════════════════════════
+function getPhoto(pid,m){
+  if(VID&&PC[VID]&&PC[VID][ck(pid,m)])return PC[VID][ck(pid,m)];
+  try{return localStorage.getItem(`hn_ph_${pid}_${m}`)||null}catch{return null}
+}
+
+async function savePhoto(vid,pid,m,img){
+  if(!PC[vid])PC[vid]={};
+  PC[vid][ck(pid,m)]=img;
+  try{localStorage.setItem(`hn_ph_${pid}_${m}`,img)}catch{}
+  if(FS){
+    try{
+      const docId=`${vid}_${pid}_${m}`;
+      const pdv=PDV.find(p=>p.i===pid);
+      await FNS.setDoc(FNS.doc(FS,`photos/${docId}`),{v:vid,pid,m,img,ts:Date.now(),n:pdv?.n||pid,s:pdv?.s||''});
+    }catch(e){console.warn('photo db err',e)}
+  }
+}
+
+function compImg(f,cb){
+  const img=new Image(),url=URL.createObjectURL(f);
+  img.onload=()=>{
+    const MAX=800;let w=img.width,h=img.height;
+    if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX}else{w=Math.round(w*MAX/h);h=MAX}}
+    const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+    cv.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
+    cb(cv.toDataURL('image/jpeg',.58));
+  };img.src=url;
+}
+
+// ═══════════════════════════════════════════
+// SCORE
+// ═══════════════════════════════════════════
+function uvs(){return[...new Set(PDV.map(p=>p.v))].sort((a,b)=>+a-+b)}
+function vpdvs(v){return PDV.filter(p=>p.v===String(v))}
+function vter(v){return vpdvs(v)[0]?.t||''}
+function todayDia(){return[null,'Do','Lu','Ma','Mi','Ju','Vi','Sa'][new Date().getDay()]}
+
+function vscore(v){
+  const c=getVC(v);let pts=0,dn=0,tot=0;
+  vpdvs(v).forEach(p=>p.m.forEach(m=>{tot++;if(c[ck(p.i,m)]?.done){pts+=MC[m].pts;dn++}}));
+  return{pts,dn,tot};
+}
+
+// ═══════════════════════════════════════════
+// NAVEGACIÓN
+// ═══════════════════════════════════════════
+function ss(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0)}
+function goLogin(){ss('sl');rLogin()}
+function showDash(){ss('sd');rDash()}
+function showRank(){ss('sr');rRank()}
+function showPts(){ss('spt');rPuntajes()}
+function switchV(t){if(t==='m'){ss('sv');rVHead();rVMs()}else showRank()}
+function goBack(){if(VID){ss('sv');rVHead();rDF();rVMs()}else goLogin()}
+
+// ═══════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════
+function rLogin(){
+  document.getElementById('vgrid').innerHTML=uvs().map(v=>{
+    const{pts,dn,tot}=vscore(v);const pct=tot?Math.round(dn/tot*100):0;
+    return`<button class="vc" onclick="enterV('${v}')">
+      <div class="vn bb">${v}</div>
+      <div class="vl">Vendedor</div>
+      <div class="vb"><div class="vbf" style="width:${pct}%"></div></div>
+      <div class="vst"><strong>${dn}/${tot}</strong> mis · <strong>${pts}</strong> pts</div>
+    </button>`;
+  }).join('');
+}
+
+function enterV(v){
+  VID=v;
+  const td=todayDia();
+  const vd=[...new Set(vpdvs(v).map(p=>p.d))];
+  DAY=vd.includes(td)?td:null;
+  subscribeVendorPhotos(v);
+  ss('sv');rVHead();rDF();rVMs();
+}
+
+// ═══════════════════════════════════════════
+// HEADER DEL VENDEDOR
+// ═══════════════════════════════════════════
+function rVHead(){
+  const{pts,dn,tot}=vscore(VID);const pct=tot?Math.round(dn/tot*100):0;
+  document.getElementById('vhav').textContent=VID;
+  document.getElementById('vhname').textContent=`Vendedor ${VID}`;
+  document.getElementById('vhter').textContent=vter(VID)+' · '+vpdvs(VID).length+' PDV';
+  document.getElementById('vhpts').textContent=pts;
+  document.getElementById('vhpfill').style.width=pct+'%';
+  document.getElementById('vhptxt').textContent=dn+'/'+tot;
+}
+
+// ═══════════════════════════════════════════
+// FILTRO DE DÍAS
+// ═══════════════════════════════════════════
+function rDF(){
+  const all=vpdvs(VID);const c=getVC(VID);
+  const days=[...new Set(all.map(p=>p.d))].sort((a,b)=>DO.indexOf(a)-DO.indexOf(b));
+  const td=todayDia();
+  const totAll=all.reduce((s,p)=>s+p.m.length,0);
+  const dnAll=all.reduce((s,p)=>s+p.m.filter(m=>c[ck(p.i,m)]?.done).length,0);
+  document.getElementById('df').innerHTML=
+    `<button class="dp${!DAY?' on':''}" onclick="setD(null)"><span class="dp-day">Todos</span><span class="dp-ct">${dnAll}/${totAll}</span></button>`+
+    days.map(d=>{
+      const dp=all.filter(p=>p.d===d);
+      const dt=dp.reduce((s,p)=>s+p.m.length,0);
+      const dd=dp.reduce((s,p)=>s+p.m.filter(m=>c[ck(p.i,m)]?.done).length,0);
+      const lbl=d===td?'Hoy':(DIAS[d]||d).slice(0,3);
+      return`<button class="dp${DAY===d?' on':''}" onclick="setD('${d}')"><span class="dp-day">${lbl}</span><span class="dp-ct">${dd}/${dt}</span></button>`;
+    }).join('');
+}
+function setD(d){DAY=d;rDF();rVMs()}
+
+// ═══════════════════════════════════════════
+// LISTA DE MISIONES
+// ═══════════════════════════════════════════
+function rVMs(){
+  const c=getVC(VID);
+  const pdvs=vpdvs(VID).filter(p=>!DAY||p.d===DAY);
+  const list=document.getElementById('pdvl');
+
+  if(!pdvs.length){
+    document.getElementById('day-sum-wrap').innerHTML='';
+    list.innerHTML=`<div class="empty"><div class="big">📋</div>Sin PDV para este día</div>`;
+    document.getElementById('slbl-l').textContent='Sin misiones';
+    document.getElementById('slbl-r').textContent='';
+    return;
+  }
+  const totM=pdvs.reduce((s,p)=>s+p.m.length,0);
+  const dnM=pdvs.reduce((s,p)=>s+p.m.filter(m=>c[ck(p.i,m)]?.done).length,0);
+  const dpd=pdvs.filter(p=>p.m.every(m=>c[ck(p.i,m)]?.done)).length;
+  const pct=totM?Math.round(dnM/totM*100):0;
+  const allDone=dpd===pdvs.length&&pdvs.length>0;
+  const td=todayDia();const dayLabel=DAY?(DAY===td?'Hoy – '+(DIAS[DAY]||DAY):(DIAS[DAY]||DAY)):'Todos los días';
+  const icon=allDone?'🏆':pct>60?'🔥':'📍';
+
+  document.getElementById('day-sum-wrap').innerHTML=`
+    <div class="day-sum${allDone?' ok':''}">
+      <div class="ds-icon">${icon}</div>
+      <div class="ds-body">
+        <div class="ds-title">${dayLabel}</div>
+        <div class="ds-sub">${dpd}/${pdvs.length} PDV completos · ${dnM}/${totM} misiones cumplidas</div>
+      </div>
+      <div class="ds-pct" style="color:${allDone?'var(--green)':pct>60?'var(--amber)':'var(--tx2)'}">${pct}%</div>
+    </div>`;
+
+  const sorted=[...pdvs].sort((a,b)=>{
+    const ad=a.m.every(m=>c[ck(a.i,m)]?.done);const bd=b.m.every(m=>c[ck(b.i,m)]?.done);
+    if(ad!==bd)return ad-bd;
+    return a.m.filter(m=>c[ck(a.i,m)]?.done).length-b.m.filter(m=>c[ck(b.i,m)]?.done).length;
+  });
+  document.getElementById('slbl-l').textContent='Puntos de venta';
+  document.getElementById('slbl-r').textContent=pdvs.length+' PDV';
+  list.innerHTML=sorted.map((p,i)=>{
+    const ad=p.m.every(m=>c[ck(p.i,m)]?.done);
+    const pd=p.m.some(m=>c[ck(p.i,m)]?.done)&&!ad;
+    const dnCnt=p.m.filter(m=>c[ck(p.i,m)]?.done).length;
+    const badges=p.m.map(m=>`<span class="mbd${c[ck(p.i,m)]?.done?' dn-b':''}" style="background:${MC[m].color}">${MC[m].icon} ${MC[m].name}</span>`).join('');
+    const mrows=p.m.map(m=>mRow(p,m,c)).join('');
+    return`<div class="pc ${ad?'done':pd?'pend':''}" id="pc-${p.i}" style="animation-delay:${i*.03}s">
+      <div class="pchd">
+        <div class="pccb c${p.c||'4'}">${p.c}</div>
+        <div class="pcin">
+          <div class="pcn">${p.n||'PDV '+p.i}</div>
+          <div class="pcm"><span class="pcm-tag">📍 ${p.t}</span><span class="pcm-tag">🏪 ${p.s}</span><span class="pcm-tag">#${p.i}</span></div>
+          <div class="pcbadge">${badges}</div>
+        </div>
+        <div class="pc-right">
+          ${ad?`<div class="pc-done-ico">✅</div>`:`<div class="pc-counter">${dnCnt}</div><div class="pc-counter-lbl">/${p.m.length} mis</div>`}
+        </div>
+      </div>
+      <div class="pcms">${mrows}</div>
+    </div>`;
+  }).join('');
+  rVHead();chkCong();
+}
+
+function mRow(p,m,c){
+  const cfg=MC[m];const k=ck(p.i,m);const done=!!c[k]?.done;
+  const photo=getPhoto(p.i,m);
+  const ts=c[k]?.ts?new Date(c[k].ts).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}):'';
+  let photoHTML=photo
+    ?`<div class="photo-row"><img class="pthumb" src="${photo}" alt="" onclick="olbox('${p.i}','${m}')"><div><div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:5px">✓ Foto cargada</div><label class="pbtn-change">📷 Cambiar<input type="file" accept="image/*" capture="environment" class="phi" onchange="hPhoto(event,'${p.i}','${m}')"></label></div></div>`
+    :`<label class="pbtn-capture"><span class="cam-icon">📸</span><span>Sacar foto de evidencia</span><input type="file" accept="image/*" capture="environment" class="phi" onchange="hPhoto(event,'${p.i}','${m}')"></label>`;
+  return`<div class="mr${done?' dn-row':''}" id="mr-${k.replace(/::/g,'-')}">
+    <div class="mr-top">
+      <div class="mck${done?' on':''}" onclick="togM('${p.i}','${m}')">${done?'✓':''}</div>
+      <div class="mr-body">
+        <div class="mr-done-badge">✓ Cumplida${ts?' a las '+ts:''}</div>
+        <div class="mr-head">
+          <div class="mr-name">${cfg.icon} <span style="color:${cfg.color}">${cfg.name}</span></div>
+          <div class="mr-pts" style="background:${cfg.color}">+${cfg.pts}</div>
+        </div>
+        <div class="mr-desc">${cfg.desc}</div>
+        <div class="mr-foto-hint">📷 <span><strong>Evidencia:</strong> ${cfg.foto}</span></div>
+        <div class="photo-zone" id="pz-${k.replace(/::/g,'-')}">${photoHTML}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+// FOTO HANDLER
+// ═══════════════════════════════════════════
+function hPhoto(ev,pid,m){
+  const f=ev.target.files[0];if(!f)return;
+  const k=ck(pid,m);const zid='pz-'+k.replace(/::/g,'-');
+  const zone=document.getElementById(zid);
+  if(zone)zone.innerHTML=`<div class="photo-loading"><div class="spin"></div> Procesando foto…</div>`;
+  compImg(f,async img=>{
+    await savePhoto(VID,pid,m,img);
+    await saveComp(VID,pid,m,true);
+    rVMs();
+    setTimeout(()=>{const el=document.getElementById('mr-'+k.replace(/::/g,'-'));el?.scrollIntoView({behavior:'smooth',block:'nearest'})},80);
+  });
+}
+
+async function togM(pid,m){
+  const c=getVC(VID);const done=!c[ck(pid,m)]?.done;
+  await saveComp(VID,pid,m,done);rVMs();
+}
+
+function chkCong(){
+  const c=getVC(VID);const pdvs=vpdvs(VID).filter(p=>!DAY||p.d===DAY);
+  if(!pdvs.length)return;
+  if(pdvs.every(p=>p.m.every(m=>c[ck(p.i,m)]?.done))){
+    const key=`cg_${VID}_${DAY||'x'}`;
+    if(!sessionStorage.getItem(key)){sessionStorage.setItem(key,'1');document.getElementById('cov').classList.add('show')}
+  }
+}
+
+// ═══════════════════════════════════════════
+// RANKING
+// ═══════════════════════════════════════════
+function rRank(){
+  const ranked=uvs().map(v=>{const{pts,dn,tot}=vscore(v);return{v,pts,dn,tot,pct:tot?Math.round(dn/tot*100):0}}).sort((a,b)=>b.pts-a.pts||b.pct-a.pct);
+  const mp=ranked[0]?.pts||1;const me=VID;
+  const ord=[1,0,2];const cls=['p2','p1','p3'];const med=['🥈','🥇','🥉'];
+  document.getElementById('rpod').innerHTML=ord.map((ri,bi)=>{
+    const r=ranked[ri];if(!r)return`<div class="pi"></div>`;
+    return`<div class="pi ${cls[bi]}"><div class="pav bb">${r.v}</div><div class="pnm">V${r.v}</div><div class="ppt bb">${r.pts}</div><div class="pblk">${med[bi]}</div></div>`;
+  }).join('');
+  document.getElementById('rlist').innerHTML=ranked.map((r,i)=>{
+    const im=r.v===me;const bw=mp?Math.round(r.pts/mp*100):0;
+    return`<div class="rr${im?' me':''}">
+      <div class="rpos bb">${i+1}</div><div class="rav bb">${r.v}</div>
+      <div class="ri"><div class="rname">Vendedor ${r.v}${im?' (Vos)':''}</div>
+        <div class="rdet">${r.dn}/${r.tot} misiones · ${r.pct}%</div>
+        <div class="rbt"><div class="rbf" style="width:${bw}%;background:${im?'var(--red)':'var(--blue)'}"></div></div>
+      </div><div class="rpts bb">${r.pts}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// PUNTAJES
+// ═══════════════════════════════════════════
+function rPuntajes(){
+  let gTot=0,gDn=0,gPts=0;const mDn={},mTot={};
+  Object.keys(MC).forEach(m=>{mDn[m]=0;mTot[m]=0});
+  PDV.forEach(p=>p.m.forEach(m=>{mTot[m]++;gTot++;const c=getVC(p.v);if(c[ck(p.i,m)]?.done){mDn[m]++;gDn++;gPts+=MC[m].pts}}));
+  const gPct=gTot?Math.round(gDn/gTot*100):0;
+  document.getElementById('ph-summary').innerHTML=`
+    <div class="phs-tile"><div class="phs-val bb" style="color:var(--green)">${gPct}<span style="font-size:18px">%</span></div><div class="phs-lbl">Avance</div></div>
+    <div class="phs-tile"><div class="phs-val bb" style="color:var(--amber)">${gPts}</div><div class="phs-lbl">Puntos</div></div>
+    <div class="phs-tile"><div class="phs-val bb" style="color:#fff">${gDn}</div><div class="phs-lbl">Cumplidas</div></div>`;
+  document.getElementById('pt-list').innerHTML=M_ORDER.map(m=>{
+    const cfg=MC[m];const tot=mTot[m];const dn=mDn[m];const pend=tot-dn;const pct=tot?Math.round(dn/tot*100):0;
+    return`<div class="ptc"><div class="ptc-accent" style="background:${cfg.color}"></div>
+      <div class="ptc-top"><div class="ptc-nm"><span class="ptc-icon">${cfg.icon}</span><div><div class="ptc-name">${cfg.name}</div><div style="font-size:10px;color:var(--tx3);margin-top:2px">${dn*cfg.pts} / ${tot*cfg.pts} pts posibles</div></div></div>
+      <div class="ptc-pts-badge" style="background:${cfg.color}">+${cfg.pts}</div></div>
+      <div class="ptc-stats">
+        <div class="ptc-stat obj"><div class="ptc-stat-v bb" style="color:var(--tx)">${tot}</div><div class="ptc-stat-l">Objetivo</div></div>
+        <div class="ptc-stat dn"><div class="ptc-stat-v bb" style="color:var(--green)">${dn}</div><div class="ptc-stat-l">✓ Cumplidas</div></div>
+        <div class="ptc-stat pend"><div class="ptc-stat-v bb" style="color:var(--red)">${pend}</div><div class="ptc-stat-l">⏳ Pendientes</div></div>
+      </div>
+      <div class="ptc-bar-row"><div class="ptc-bar-track"><div class="ptc-bar-fill" style="width:${pct}%;background:${cfg.color}"></div></div><div class="ptc-pct bb">${pct}%</div></div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════
+let PBUF='';
+function pk(d){PBUF+=d;rpd();if(PBUF.length===4){setTimeout(()=>{if(PBUF===PIN){DUNLOCKED=true;document.getElementById('dlock').classList.add('hidden');document.getElementById('dcont').classList.remove('hidden');rDCont()}else{document.getElementById('perr').classList.remove('hidden');PBUF='';rpd()}},150)}}
+function pdel(){PBUF=PBUF.slice(0,-1);rpd();document.getElementById('perr').classList.add('hidden')}
+function rpd(){document.querySelectorAll('.pdot').forEach((d,i)=>d.classList.toggle('on',i<PBUF.length))}
+
+function dTab(t){
+  document.querySelectorAll('.dtab').forEach((el,i)=>el.classList.toggle('on',['ov','vd','ph','xl'][i]===t));
+  document.querySelectorAll('.dpnl').forEach(p=>p.classList.remove('on'));
+  document.getElementById(`dp-${t}`).classList.add('on');
+  if(t==='ph')rDPhotos();
+}
+
+function rDash(){
+  document.getElementById('dhsub').textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  if(DUNLOCKED){document.getElementById('dlock').classList.add('hidden');document.getElementById('dcont').classList.remove('hidden');rDCont()}
+  else{PBUF='';rpd();document.getElementById('perr').classList.add('hidden')}
+}
+
+function rDCont(){
+  let totM=0,dnM=0,totPts=0;const md={},mt={};
+  Object.keys(MC).forEach(m=>{md[m]=0;mt[m]=0});
+  PDV.forEach(p=>p.m.forEach(m=>{totM++;mt[m]++;const c=getVC(p.v);if(c[ck(p.i,m)]?.done){dnM++;md[m]++;totPts+=MC[m].pts}}));
+  const pct=totM?Math.round(dnM/totM*100):0;
+  const allPDV=[...new Set(PDV.map(p=>p.i))].length;
+  const dnPDV=[...new Set(uvs().flatMap(v=>Object.entries(getVC(v)).filter(([,d])=>d.done).map(([k])=>k.split('::')[0])))].length;
+  document.getElementById('dkpis').innerHTML=`
+    <div class="kt"><div class="kl">Misiones cumplidas</div><div class="kv" style="color:var(--green)">${dnM}</div><div class="ks">de ${totM} · ${pct}%</div></div>
+    <div class="kt"><div class="kl">Puntos del equipo</div><div class="kv" style="color:var(--amber)">${totPts}</div><div class="ks">pts acumulados</div></div>
+    <div class="kt"><div class="kl">PDV trabajados</div><div class="kv" style="color:var(--blue)">${dnPDV}</div><div class="ks">de ${allPDV} asignados</div></div>
+    <div class="kt"><div class="kl">Vendedores</div><div class="kv" style="color:var(--purple)">${uvs().length}</div><div class="ks">activos en la campaña</div></div>`;
+  document.getElementById('dmb').innerHTML=M_ORDER.map(m=>{
+    const cfg=MC[m];const dn=md[m];const tot=mt[m];const w=tot?Math.round(dn/tot*100):0;
+    return`<div class="mb-r"><div class="mb-top"><div class="mb-nm">${cfg.icon} ${cfg.name}</div><div class="mb-ct">${dn}/${tot} (${w}%)</div></div><div class="mb-tr"><div class="mb-f" style="width:${w}%;background:${cfg.color}"></div></div></div>`;
+  }).join('');
+  const ranked=uvs().map(v=>{const{pts,dn,tot}=vscore(v);const ps=vpdvs(v);const c=getVC(v);return{v,pts,dn,tot,dpd:ps.filter(p=>p.m.every(m=>c[ck(p.i,m)]?.done)).length,ptot:ps.length}}).sort((a,b)=>b.pts-a.pts);
+  const mx=ranked[0]?.pts||1;
+  document.getElementById('dvlist').innerHTML=ranked.map(r=>{
+    const pct=r.tot?Math.round(r.dn/r.tot*100):0;
+    return`<div class="dvr"><div class="dv-tp"><div class="dv-av bb">${r.v}</div><div class="dv-nm">Vendedor ${r.v}</div><div class="dv-pts bb">${r.pts} pts</div></div>
+      <div class="dv-bt"><div class="dv-bf" style="width:${Math.round(r.pts/mx*100)}%;background:var(--red)"></div></div>
+      <div class="dv-sr"><div class="dv-st"><strong>${r.dn}/${r.tot}</strong> misiones</div><div class="dv-st"><strong>${r.dpd}/${r.ptot}</strong> PDV</div><div class="dv-st"><strong>${pct}%</strong></div></div>
+    </div>`;
+  }).join('');
+}
+
+async function rDPhotos(){
+  const gal=document.getElementById('pgal');
+  gal.innerHTML=`<div class="gempty"><div class="spin" style="width:24px;height:24px;margin:0 auto 10px"></div>Cargando fotos…</div>`;
+  let photos=[];
+  if(FS){
+    try{
+      const snap=await FNS.getDocs(FNS.collection(FS,'photos'));
+      snap.forEach(d=>{const x=d.data();if(x.img)photos.push(x)});
+    }catch(e){console.warn(e)}
+  }
+  PDV.forEach(p=>p.m.forEach(m=>{
+    try{const img=localStorage.getItem(`hn_ph_${p.i}_${m}`);if(img&&!photos.find(x=>x.pid===p.i&&x.m===m))photos.push({pid:p.i,m,img,ts:0,v:p.v,n:p.n})}catch{}
+  }));
+  photos.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  gal.innerHTML=photos.length
+    ?photos.map(ph=>`<div class="gi" onclick="olboxDirect('${encodeURIComponent(ph.img)}','${(MC[ph.m]?.name||ph.m).replace(/'/g,"\\'")} · ${(ph.n||ph.pid).replace(/'/g,"\\'")}')"><img src="${ph.img}" alt=""><div class="gio"><div class="gim">${MC[ph.m]?.name||ph.m}</div><div class="gip">${ph.n||ph.pid}</div></div></div>`).join('')
+    :`<div class="gempty">📷 No hay fotos registradas aún.</div>`;
+}
+
+// ═══════════════════════════════════════════
+// EXCEL EXPORT
+// ═══════════════════════════════════════════
+async function exportXLSX(btn){
+  btn.disabled=true;btn.textContent='⏳ Generando…';
+  try{
+    const wb=XLSX.utils.book_new();
+    const now=new Date().toLocaleString('es-AR');
+    const s1=[['INFORME DE MISIONES – HORMIGA NEGRA / MB SNACKS','','','',''],['Generado:',now,'','',''],['','','','',''],['Vendedor','PDV Asignados','Misiones Totales','Cumplidas','Puntos','Avance %']];
+    uvs().forEach(v=>{const{pts,dn,tot}=vscore(v);const ps=vpdvs(v);s1.push([`Vendedor ${v}`,ps.length,tot,dn,pts,tot?Math.round(dn/tot*100)+'%':'0%'])});
+    const totA=PDV.reduce((s,p)=>s+p.m.length,0),dnA=uvs().reduce((s,v)=>s+vscore(v).dn,0),ptsA=uvs().reduce((s,v)=>s+vscore(v).pts,0);
+    s1.push([''],['TOTAL EQUIPO','',totA,dnA,ptsA,totA?Math.round(dnA/totA*100)+'%':'0%']);
+    const ws1=XLSX.utils.aoa_to_sheet(s1);ws1['!cols']=[{wch:20},{wch:14},{wch:16},{wch:12},{wch:10},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws1,'Resumen');
+    const s2=[['Vendedor','Código PDV','Nombre PDV','Territorio','Subcanal','Día','Cluster','Misión','Código','Puntos','Cumplida','Fecha y Hora']];
+    PDV.forEach(p=>{const c=getVC(p.v);p.m.forEach(m=>{const comp=c[ck(p.i,m)]||{};const done=!!comp.done;const ts=comp.ts?new Date(comp.ts).toLocaleString('es-AR'):'';s2.push([`Vendedor ${p.v}`,p.i,p.n,p.t,p.s,DIAS[p.d]||p.d,`Cluster ${p.c}`,MC[m]?.name||m,m,MC[m]?.pts||0,done?'SÍ':'NO',ts])})});
+    const ws2=XLSX.utils.aoa_to_sheet(s2);ws2['!cols']=[{wch:14},{wch:12},{wch:32},{wch:16},{wch:18},{wch:10},{wch:10},{wch:22},{wch:6},{wch:8},{wch:10},{wch:20}];
+    XLSX.utils.book_append_sheet(wb,ws2,'Detalle PDV');
+    const ranked=uvs().map(v=>{const{pts,dn,tot}=vscore(v);return{v,pts,dn,tot,pct:tot?Math.round(dn/tot*100):0}}).sort((a,b)=>b.pts-a.pts);
+    const s3=[['Posición','Vendedor','Puntos','Cumplidas','Totales','Avance %']];
+    ranked.forEach((r,i)=>s3.push([i+1,`Vendedor ${r.v}`,r.pts,r.dn,r.tot,r.pct+'%']));
+    const ws3=XLSX.utils.aoa_to_sheet(s3);ws3['!cols']=[{wch:10},{wch:14},{wch:10},{wch:12},{wch:10},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws3,'Ranking');
+    const mDn={},mTot={};Object.keys(MC).forEach(m=>{mDn[m]=0;mTot[m]=0});
+    PDV.forEach(p=>p.m.forEach(m=>{mTot[m]++;const c=getVC(p.v);if(c[ck(p.i,m)]?.done)mDn[m]++}));
+    const s4=[['Misión','Código','Pts/unidad','Objetivo','Cumplidas','Pendientes','Avance %','Pts ganados','Pts posibles']];
+    M_ORDER.forEach(m=>{const cfg=MC[m];const dn=mDn[m];const tot=mTot[m];s4.push([cfg.name,m,cfg.pts,tot,dn,tot-dn,tot?Math.round(dn/tot*100)+'%':'0%',dn*cfg.pts,tot*cfg.pts])});
+    const ws4=XLSX.utils.aoa_to_sheet(s4);ws4['!cols']=[{wch:22},{wch:6},{wch:12},{wch:10},{wch:12},{wch:12},{wch:10},{wch:14},{wch:14}];
+    XLSX.utils.book_append_sheet(wb,ws4,'Avance por Misión');
+    const buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+    const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const fname=`misiones-hn-${new Date().toISOString().slice(0,10)}.xlsx`;
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=fname;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),2000);
+    btn.textContent='✓ Descargado!';setTimeout(()=>{btn.disabled=false;btn.innerHTML='📊 Descargar Informe Excel'},2500);
+  }catch(e){console.error(e);btn.disabled=false;btn.innerHTML='❌ Error — intentá de nuevo'}
+}
+
+// ═══════════════════════════════════════════
+// BORRAR DATOS
+// ═══════════════════════════════════════════
+function confirmClear(){document.getElementById('clr-confirm').classList.remove('hidden');document.getElementById('clr-wrap').classList.add('hidden')}
+function cancelClear(){document.getElementById('clr-confirm').classList.add('hidden');document.getElementById('clr-wrap').classList.remove('hidden')}
+async function execClear(btn){
+  btn.textContent='Borrando…';btn.disabled=true;
+  try{
+    if(FS){
+      for(const v of uvs()){try{await FNS.deleteDoc(FNS.doc(FS,`vendor_progress/${v}`))}catch{}}
+      try{
+        const snap=await FNS.getDocs(FNS.collection(FS,'photos'));
+        const batch=FNS.writeBatch(FS);let cnt=0;
+        snap.forEach(d=>{batch.delete(d.ref);cnt++;});
+        if(cnt>0)await batch.commit();
+      }catch(e){console.warn(e)}
+    }
+    try{const keys=Object.keys(localStorage).filter(k=>k.startsWith('hn_'));keys.forEach(k=>localStorage.removeItem(k))}catch{}
+    SP={};PC={};
+    btn.textContent='✓ Borrado!';
+    setTimeout(()=>{cancelClear();btn.textContent='Sí, borrar todo';btn.disabled=false;rDCont();rLogin()},1500);
+  }catch(e){console.error(e);btn.textContent='Error';btn.disabled=false}
+}
+
+// ═══════════════════════════════════════════
+// LIGHTBOX
+// ═══════════════════════════════════════════
+function olbox(pid,m){
+  const img=getPhoto(pid,m);if(!img)return;
+  const pd=PDV.find(p=>p.i===pid);
+  document.getElementById('lbox-img').src=img;
+  document.getElementById('lbox-inf').textContent=`${MC[m]?.icon||''} ${MC[m]?.name||m} · ${pd?.n||pid}`;
+  document.getElementById('lbox').classList.add('show');
+}
+function olboxDirect(img,inf){document.getElementById('lbox-img').src=decodeURIComponent(img);document.getElementById('lbox-inf').textContent=inf;document.getElementById('lbox').classList.add('show')}
+function closeLbox(){document.getElementById('lbox').classList.remove('show')}
+</script>
+</body>
+</html>
