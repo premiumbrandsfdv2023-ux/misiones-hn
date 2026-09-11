@@ -567,7 +567,7 @@ const MC={
   MK:{name:'Bajar Mark-up Lays MB',icon:'💰',color:'#EA580C',
       desc:'Negociar con el PDV para bajar el precio de venta de Lays y mejorar la competitividad frente a la competencia.',
       foto:'Foto del cartel de precios actualizado con el nuevo precio de Lays'},
-  PE:{name:'Lays MB + PH MB - 33+333',icon:'🎯',color:'#7C3AED',
+  PE:{name:'Lays MB + PH MB 33+33 (Pepsico)',icon:'🎯',color:'#7C3AED',
       desc:'Visitar y ejecutar las acciones del plan Pehuamar en este PDV: exhibición, orden y disponibilidad del producto.',
       foto:'Foto del producto Pehuamar exhibido y ordenado en el PDV'},
   C9:{name:'Lays 9+1',icon:'🤝',color:'#DC2626',
@@ -847,7 +847,7 @@ function rVMs(){
     const mrows=p.m.map(m=>mRow(p,m,c)).join('');
     return`<div class="pc ${ad?'done':pd?'pend':''}" id="pc-${p.i}" style="animation-delay:${i*.03}s">
       <div class="pchd">
-        <div class="pccb c${p.c||'4'}">${p.c}</div>
+        <div class="pccb c${p.c||'4'}">${p.c||'🏪'}</div>
         <div class="pcin">
           <div class="pcn">${p.n||'PDV '+p.i}</div>
           <div class="pcm"><span class="pcm-tag">📍 ${p.t}</span><span class="pcm-tag">🏪 ${p.s}</span><span class="pcm-tag">#${p.i}</span></div>
