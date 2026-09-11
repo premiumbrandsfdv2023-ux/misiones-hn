@@ -978,11 +978,8 @@ function rpd(){document.querySelectorAll('.pdot').forEach((d,i)=>d.classList.tog
 function dTab(t){
   document.querySelectorAll('.dtab').forEach((el,i)=>el.classList.toggle('on',['ov','vd','mx','xl'][i]===t));
   document.querySelectorAll('.dpnl').forEach(p=>p.classList.remove('on'));
-  document.getElementById(`dp-${t
+  document.getElementById(`dp-${t}`).classList.add('on');
   if(t==='mx')rDMatrix();
-
-  if(t==='mx')rDMatrix();
-}`).classList.add('on');
   if(t==='ph')rDPhotos();
 }
 
